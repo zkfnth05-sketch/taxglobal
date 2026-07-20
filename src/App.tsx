@@ -613,6 +613,16 @@ function App() {
     const totalCourtFee = refundNational + refundLocal;
     const expectedFee = Math.round(totalCourtFee * (feeRate / 100));
 
+    // Calculate extra refund generated purely by dependent family deductions
+    const remainingWithoutDeps = Math.max(0, calculatedTax - reductionAmt);
+    const childDeductionWithoutDeps = calculatedTax > 0 ? Math.round(childDeduction * (remainingWithoutDeps / calculatedTax)) : 0;
+    const decisionTaxWithoutDeps = Math.max(0, remainingWithoutDeps - childDeductionWithoutDeps);
+    const refundNationalWithoutDeps = Math.max(0, originalDecisionTax - decisionTaxWithoutDeps);
+    const refundLocalWithoutDeps = Math.max(0, originalLocalTax - Math.round(decisionTaxWithoutDeps * 0.1));
+    const totalRefundWithoutDeps = refundNationalWithoutDeps + refundLocalWithoutDeps;
+
+    const dependentRefundTotal = Math.max(0, totalCourtFee - totalRefundWithoutDeps);
+
     return {
       ...yrData,
       childReductionApplyAmt: String(reductionAmt),
@@ -623,7 +633,8 @@ function App() {
       refundExpectNational: String(refundNational),
       refundExpectLocal: String(refundLocal),
       courtFee: String(totalCourtFee),
-      expectedFeeAmt: String(expectedFee)
+      expectedFeeAmt: String(expectedFee),
+      dependentRefundTotal: String(dependentRefundTotal)
     };
   };
 
@@ -2695,6 +2706,29 @@ function App() {
                           {targetYears.reduce((sum, yr) => sum + (regForm.years[yr]?.active ? Number(regForm.years[yr]?.courtFee) || 0 : 0), 0).toLocaleString()}
                         </td>
                       </tr>
+
+                      {/* Row: 부양가족 공제 환급금 합계 */}
+                      <tr style={{ backgroundColor: '#f0fdf4' }}>
+                        <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', textAlign: 'center', color: '#15803d', backgroundColor: '#dcfce7' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '14px' }}>👨‍👩‍👧‍👦</span>
+                            <span>부양가족 공제 환급금 합계</span>
+                          </div>
+                        </td>
+                        {targetYears.map(yr => {
+                          const yrData = regForm.years[yr];
+                          const depRefund = yrData?.active ? Number(yrData?.dependentRefundTotal) || 0 : 0;
+                          return (
+                            <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'right', fontWeight: 'bold', color: '#15803d', backgroundColor: '#f0fdf4' }}>
+                              {yrData?.active ? `+${depRefund.toLocaleString()}원` : '-'}
+                            </td>
+                          );
+                        })}
+                        <td style={{ border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', padding: '6px', backgroundColor: '#dcfce7', color: '#15803d', fontSize: '13px' }}>
+                          +{targetYears.reduce((sum, yr) => sum + (regForm.years[yr]?.active ? Number(regForm.years[yr]?.dependentRefundTotal) || 0 : 0), 0).toLocaleString()}원
+                        </td>
+                      </tr>
+
                       <tr style={{ backgroundColor: '#fef9c3' }}>
                         <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', color: '#854d0e', backgroundColor: '#fef08a' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
