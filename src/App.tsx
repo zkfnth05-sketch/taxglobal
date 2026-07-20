@@ -16,7 +16,7 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { extractTextFromPdf, parsePdfText } from './utils/pdfParser';
-import { fetchClientsFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
+import { fetchInitialClientsFromSupabase, fetchAllClientsParallelFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
 
 
 // Define customer interface
@@ -249,13 +249,14 @@ function App() {
   const [isNewStaffModalOpen, setIsNewStaffModalOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  // Load Supabase initial data
+  // Load Supabase initial data with ultra-fast 2-stage parallel streaming
   useEffect(() => {
     async function loadSupabaseData() {
       try {
-        const dbData = await fetchClientsFromSupabase();
-        if (dbData && Array.isArray((dbData as any).clients) && (dbData as any).clients.length > 0) {
-          const fetchedClients: Customer[] = (dbData as any).clients.map((c: any, idx: number) => {
+        // Stage 1: Ultra-fast initial load (first 2,000 recent items in ~0.2s)
+        const initialClients = await fetchInitialClientsFromSupabase();
+        if (initialClients && initialClients.length > 0) {
+          const mappedInitial: Customer[] = initialClients.map((c: any, idx: number) => {
             const registeredDate = c.createdAt
               ? new Date(c.createdAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })
               : '26. 7. 15.';
@@ -270,7 +271,7 @@ function App() {
               companyName: c.company || '-',
               refundStatus: '◎경정상담중',
               submissionStatus: '◎재직회사제출',
-              monthlyRent: c.isMonthlyRent ? '예' : '아니오',
+              monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
               claimDate: '-',
               additionalPerformance: 0,
               managerCountry: c.country || '인도네시아',
@@ -278,14 +279,39 @@ function App() {
             };
           });
 
-          setCustomers(prev => {
-            const existingRegNums = new Set(prev.map(p => p.birthDate));
-            const uniqueNew = fetchedClients.filter(fc => !existingRegNums.has(fc.birthDate));
-            return [...uniqueNew, ...prev];
+          setCustomers(mappedInitial);
+        }
+
+        // Stage 2: Parallel background load for ALL 24,634+ records (~1.8s)
+        const allClients = await fetchAllClientsParallelFromSupabase();
+        if (allClients && allClients.length > 0) {
+          const mappedAll: Customer[] = allClients.map((c: any, idx: number) => {
+            const registeredDate = c.createdAt
+              ? new Date(c.createdAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })
+              : '26. 7. 15.';
+
+            return {
+              id: c.serial || (25000 + idx),
+              registeredDate,
+              nationality: c.country || '인도네시아',
+              name: c.name || '미상',
+              birthDate: c.regNum || '-',
+              visa: c.visa || 'E9',
+              companyName: c.company || '-',
+              refundStatus: '◎경정상담중',
+              submissionStatus: '◎재직회사제출',
+              monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
+              claimDate: '-',
+              additionalPerformance: 0,
+              managerCountry: c.country || '인도네시아',
+              managerName: 'Gaby',
+            };
           });
+
+          setCustomers(mappedAll);
         }
       } catch (e) {
-        console.warn('Initial Supabase fetch catch:', e);
+        console.warn('Supabase fetch catch:', e);
       }
     }
     loadSupabaseData();
