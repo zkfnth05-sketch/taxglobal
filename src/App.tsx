@@ -3548,40 +3548,53 @@ function App() {
                   {/* Right: Team & Manager Performance Ranking TOP 5 */}
                   <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        🏆 팀별 / 매니저별 실적 랭킹 TOP 5
-                      </h3>
-                      <span style={{ fontSize: '11px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>실시간 반영</span>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          🏆 팀별 / 매니저별 실적 랭킹 TOP 5
+                        </h3>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          조회 기준: <b>{filterLabel}</b> ({dashYearFilter === '전체' ? '5개년 누적 합계' : dashYearFilter + '년도 실적'})
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '11px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        {filterLabel} 반영
+                      </span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {[
-                        { rank: '🥇 1위', team: '미얀마팀', manager: '보람 (Boram)', clients: '8,420명', refund: '43.5억 원', fee: '9.57억 원', badgeBg: '#fef3c7', badgeColor: '#b45309' },
-                        { rank: '🥈 2위', team: '인도네시아팀', manager: 'Gaby (게비)', clients: '7,150명', refund: '36.8억 원', fee: '8.09억 원', badgeBg: '#f1f5f9', badgeColor: '#475569' },
-                        { rank: '🥉 3위', team: '베트남팀', manager: '린 (Linh)', clients: '4,820명', refund: '24.9억 원', fee: '5.47억 원', badgeBg: '#ffedd5', badgeColor: '#c2410c' },
-                        { rank: '4위', team: '캄보디아팀', manager: '소피아', clients: '2,410명', refund: '12.4억 원', fee: '2.72억 원', badgeBg: '#f8fafc', badgeColor: '#64748b' },
-                        { rank: '5위', team: '몽골 & 기타팀', manager: '아드난 / 레누카', clients: '1,380명', refund: '7.1억 원', fee: '1.56억 원', badgeBg: '#f8fafc', badgeColor: '#64748b' }
-                      ].map((item, idx) => (
-                        <div key={idx} style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #f1f5f9', backgroundColor: idx === 0 ? '#fffbeb' : '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: item.badgeBg, color: item.badgeColor }}>
-                              {item.rank}
-                            </span>
-                            <div>
-                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>
-                                {item.team} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>({item.manager})</span>
-                              </div>
-                              <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                관리 고객: <b>{item.clients}</b>
+                        { rank: '🥇 1위', team: '미얀마팀', manager: '보람 (Boram)', clientsBase: 8420, refundBase: 43.5, feeBase: 9.57, badgeBg: '#fef3c7', badgeColor: '#b45309' },
+                        { rank: '🥈 2위', team: '인도네시아팀', manager: 'Gaby (게비)', clientsBase: 7150, refundBase: 36.8, feeBase: 8.09, badgeBg: '#f1f5f9', badgeColor: '#475569' },
+                        { rank: '🥉 3위', team: '베트남팀', manager: '린 (Linh)', clientsBase: 4820, refundBase: 24.9, feeBase: 5.47, badgeBg: '#ffedd5', badgeColor: '#c2410c' },
+                        { rank: '4위', team: '캄보디아팀', manager: '소피아', clientsBase: 2410, refundBase: 12.4, feeBase: 2.72, badgeBg: '#f8fafc', badgeColor: '#64748b' },
+                        { rank: '5위', team: '몽골 & 기타팀', manager: '아드난 / 레누카', clientsBase: 1380, refundBase: 7.1, feeBase: 1.56, badgeBg: '#f8fafc', badgeColor: '#64748b' }
+                      ].map((item, idx) => {
+                        const scaledClients = Math.max(1, Math.round(item.clientsBase * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
+                        const scaledRefund = (item.refundBase * totalMult).toFixed(1);
+                        const scaledFee = (item.feeBase * totalMult).toFixed(2);
+
+                        return (
+                          <div key={idx} style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #f1f5f9', backgroundColor: idx === 0 ? '#fffbeb' : '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: item.badgeBg, color: item.badgeColor }}>
+                                {item.rank}
+                              </span>
+                              <div>
+                                <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>
+                                  {item.team} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>({item.manager})</span>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                  관리 고객: <b>{scaledClients.toLocaleString()}명</b>
+                                </div>
                               </div>
                             </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#2563eb' }}>{scaledRefund}억 원</div>
+                              <div style={{ fontSize: '11px', color: '#059669', fontWeight: 'bold' }}>수수료 {scaledFee}억 원</div>
+                            </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#2563eb' }}>{item.refund}</div>
-                            <div style={{ fontSize: '11px', color: '#059669', fontWeight: 'bold' }}>수수료 {item.fee}</div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -3594,32 +3607,37 @@ function App() {
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         🌏 주요 국가별 환급 성과 및 관리 고객 비중
                       </h3>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>미얀마, 인도네시아, 베트남 등 각 국적별 고객 수 및 환급 발생 비율</span>
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>조회 기준: <b>{filterLabel}</b> (각 국적별 고객 수 및 환급 발생 비율)</span>
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                     {[
-                      { country: '🇲🇲 미얀마', count: '8,420명', pct: 34.8, refund: '43억 5,000만 원', color: '#2563eb' },
-                      { country: '🇮🇩 인도네시아', count: '7,150명', pct: 29.6, refund: '36억 8,000만 원', color: '#10b981' },
-                      { country: '🇻🇳 베트남', count: '4,820명', pct: 19.9, refund: '24억 9,000만 원', color: '#f59e0b' },
-                      { country: '🇰🇭 캄보디아', count: '2,410명', pct: 10.0, refund: '12억 4,000만 원', color: '#8b5cf6' },
-                      { country: '🇲🇳 몽골', count: '850명', pct: 3.5, refund: '4억 4,000만 원', color: '#ec4899' },
-                      { country: '🇳🇵 네팔 / 기타', count: '530명', pct: 2.2, refund: '2억 7,000만 원', color: '#64748b' }
-                    ].map((c, i) => (
-                      <div key={i} style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
-                          <span style={{ color: '#1e293b' }}>{c.country}</span>
-                          <span style={{ color: c.color }}>{c.count} ({c.pct}%)</span>
+                      { country: '🇲🇲 미얀마', countBase: 8420, pct: 34.8, refundBase: 43.5, color: '#2563eb' },
+                      { country: '🇮🇩 인도네시아', countBase: 7150, pct: 29.6, refundBase: 36.8, color: '#10b981' },
+                      { country: '🇻🇳 베트남', countBase: 4820, pct: 19.9, refundBase: 24.9, color: '#f59e0b' },
+                      { country: '🇰🇭 캄보디아', countBase: 2410, pct: 10.0, refundBase: 12.4, color: '#8b5cf6' },
+                      { country: '🇲🇳 몽골', countBase: 850, pct: 3.5, refundBase: 4.4, color: '#ec4899' },
+                      { country: '🇳🇵 네팔 / 기타', countBase: 530, pct: 2.2, refundBase: 2.7, color: '#64748b' }
+                    ].map((c, i) => {
+                      const scaledCount = Math.max(1, Math.round(c.countBase * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
+                      const scaledRefund = (c.refundBase * totalMult).toFixed(1);
+
+                      return (
+                        <div key={i} style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+                            <span style={{ color: '#1e293b' }}>{c.country}</span>
+                            <span style={{ color: c.color }}>{scaledCount.toLocaleString()}명 ({c.pct}%)</span>
+                          </div>
+                          <div style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '6px' }}>
+                            <div style={{ height: '100%', width: `${c.pct}%`, backgroundColor: c.color, borderRadius: '4px' }}></div>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>
+                            환급액: <b style={{ color: '#0f172a' }}>{scaledRefund}억 원</b>
+                          </div>
                         </div>
-                        <div style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '6px' }}>
-                          <div style={{ height: '100%', width: `${c.pct}%`, backgroundColor: c.color, borderRadius: '4px' }}></div>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>
-                          환급액: <b style={{ color: '#0f172a' }}>{c.refund}</b>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
