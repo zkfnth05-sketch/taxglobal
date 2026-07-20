@@ -576,17 +576,87 @@ function App() {
     showToast('고객 등록 정보 및 정산 데이터가 전체 초기화되었습니다.', 'info');
   };
 
+  const recalculateYearData = (
+    yrData: any, 
+    depCount: number, 
+    senCount: number, 
+    disCount: number, 
+    chCount: number, 
+    feeRate: number
+  ) => {
+    if (!yrData || (!yrData.active && !yrData.isFileUploaded)) return yrData;
+
+    const originalDecisionTax = Number(yrData.decisionTax) || 0;
+    const originalLocalTax = Number(yrData.localTax) || 0;
+    const calculatedTax = Number(yrData.taxBase) || 0;
+    const childDeduction = Number(yrData.childDeduction) || 0;
+
+    const isReductionApplied = yrData.childReductionApply !== 'N' && yrData.childReductionApply !== '0';
+    const reductionAmt = isReductionApplied ? Math.min(1500000, Math.round(calculatedTax * 0.9)) : 0;
+    
+    // 부양가족 소득공제 (인당 150만, 경로우대 +100만, 장애인 +200만)
+    const extraIncomeDeduction = (depCount * 1500000) + (senCount * 1000000) + (disCount * 2000000);
+    // 소득공제에 따른 세액 절감액 (기본 6% 적용)
+    const extraTaxReductionFromDeduction = Math.round(extraIncomeDeduction * 0.06);
+
+    // 자녀 세액공제 (인당 15만 원)
+    const extraChildTaxCredit = chCount * 150000;
+
+    const remainingTaxAfterReduction = Math.max(0, calculatedTax - reductionAmt - extraTaxReductionFromDeduction);
+    const changedChildDeduction = calculatedTax > 0 ? Math.round(childDeduction * (remainingTaxAfterReduction / calculatedTax)) : 0;
+
+    const changedDecisionTax = Math.max(0, remainingTaxAfterReduction - changedChildDeduction - extraChildTaxCredit);
+    const changedLocalTax = Math.round(changedDecisionTax * 0.1);
+
+    const refundNational = Math.max(0, originalDecisionTax - changedDecisionTax);
+    const refundLocal = Math.max(0, originalLocalTax - changedLocalTax);
+    const totalCourtFee = refundNational + refundLocal;
+    const expectedFee = Math.round(totalCourtFee * (feeRate / 100));
+
+    return {
+      ...yrData,
+      childReductionApplyAmt: String(reductionAmt),
+      childDeductionApplyAmt: String(changedChildDeduction + extraChildTaxCredit),
+      decisionTaxApplyAmt: String(changedDecisionTax),
+      localTaxApplyAmt: String(changedLocalTax),
+      decisionTaxRefundAmt: String(changedDecisionTax + changedLocalTax),
+      refundExpectNational: String(refundNational),
+      refundExpectLocal: String(refundLocal),
+      courtFee: String(totalCourtFee),
+      expectedFeeAmt: String(expectedFee)
+    };
+  };
+
+  const updateDependentsCount = (key: 'dependentsCount' | 'seniorCount' | 'disabledCount' | 'childCount', delta: number) => {
+    setRegForm(prev => {
+      const newDepCount = key === 'dependentsCount' ? Math.max(0, prev.dependentsCount + delta) : prev.dependentsCount;
+      const newSenCount = key === 'seniorCount' ? Math.max(0, prev.seniorCount + delta) : prev.seniorCount;
+      const newDisCount = key === 'disabledCount' ? Math.max(0, prev.disabledCount + delta) : prev.disabledCount;
+      const newChCount = key === 'childCount' ? Math.max(0, prev.childCount + delta) : prev.childCount;
+
+      const updatedYears = { ...prev.years };
+      Object.keys(updatedYears).forEach(yr => {
+        updatedYears[yr] = recalculateYearData(updatedYears[yr], newDepCount, newSenCount, newDisCount, newChCount, selectedFeeRate);
+      });
+
+      return {
+        ...prev,
+        dependentsCount: newDepCount,
+        seniorCount: newSenCount,
+        disabledCount: newDisCount,
+        childCount: newChCount,
+        years: updatedYears
+      };
+    });
+  };
+
   const handleFeeRateChange = (rate: number) => {
     setSelectedFeeRate(rate);
     setRegForm(prev => {
       const updatedYears = { ...prev.years };
       targetYears.forEach(yr => {
         if (updatedYears[yr]) {
-          const courtFee = Number(updatedYears[yr].courtFee) || 0;
-          updatedYears[yr] = {
-            ...updatedYears[yr],
-            expectedFeeAmt: String(Math.round(courtFee * (rate / 100)))
-          };
+          updatedYears[yr] = recalculateYearData(updatedYears[yr], prev.dependentsCount, prev.seniorCount, prev.disabledCount, prev.childCount, rate);
         }
       });
       return { ...prev, years: updatedYears };
@@ -752,24 +822,9 @@ function App() {
 
       const originalDecisionTax = Number(parsed.determinedIncomeTax) || 0;
       const originalLocalTax = Number(parsed.determinedLocalTax) || 0;
-      const calculatedTax = Number(parsed.decisionTax) || 0;
-      const childDeduction = Number(parsed.childDeduction) || 0;
-
-      const reductionAmt = Math.min(1500000, Math.round(calculatedTax * 0.9));
-      const remainingTax = Math.max(0, calculatedTax - reductionAmt);
-      const changedChildDeduction = calculatedTax > 0 ? Math.round(childDeduction * (remainingTax / calculatedTax)) : 0;
-      
-      const changedDecisionTax = Math.max(0, remainingTax - changedChildDeduction);
-      const changedLocalTax = Math.round(changedDecisionTax * 0.1);
-      
-      const refundNational = Math.max(0, originalDecisionTax - changedDecisionTax);
-      const refundLocal = Math.max(0, originalLocalTax - changedLocalTax);
-      const totalCourtFee = refundNational + refundLocal;
-      const expectedFee = Math.round(totalCourtFee * (selectedFeeRate / 100));
-
       setRegForm(prev => {
         const updatedYears = { ...prev.years };
-        updatedYears[yr] = {
+        const rawYrData = {
           active: true,
           isFileUploaded: true,
           pdfFile: file,
@@ -784,19 +839,17 @@ function App() {
           decisionTax: parsed.determinedIncomeTax || '0',
           localTax: parsed.determinedLocalTax || '0',
           taxRefundTotal: String(originalDecisionTax + originalLocalTax),
-          
-          childReductionApply: reductionAmt > 0 ? 'Y' : 'N',
-          childReductionApplyAmt: String(reductionAmt),
-          childDeductionApplyAmt: String(changedChildDeduction),
-          decisionTaxApplyAmt: String(changedDecisionTax),
-          localTaxApplyAmt: String(changedLocalTax),
-          decisionTaxRefundAmt: String(changedDecisionTax + changedLocalTax),
-          
-          refundExpectNational: String(refundNational),
-          refundExpectLocal: String(refundLocal),
-          courtFee: String(totalCourtFee),
-          expectedFeeAmt: String(expectedFee)
+          childReductionApply: 'Y',
         };
+
+        updatedYears[yr] = recalculateYearData(
+          rawYrData, 
+          prev.dependentsCount, 
+          prev.seniorCount, 
+          prev.disabledCount, 
+          prev.childCount, 
+          selectedFeeRate
+        );
 
         const updatedBasic: any = {};
         if (parsed.name && !prev.name) updatedBasic.name = parsed.name;
@@ -848,24 +901,10 @@ function App() {
 
         const originalDecisionTax = Number(parsed.determinedIncomeTax) || 0;
         const originalLocalTax = Number(parsed.determinedLocalTax) || 0;
-        const calculatedTax = Number(parsed.decisionTax) || 0;
-        const childDeduction = Number(parsed.childDeduction) || 0;
-
-        const reductionAmt = Math.min(1500000, Math.round(calculatedTax * 0.9));
-        const remainingTax = Math.max(0, calculatedTax - reductionAmt);
-        const changedChildDeduction = calculatedTax > 0 ? Math.round(childDeduction * (remainingTax / calculatedTax)) : 0;
-        
-        const changedDecisionTax = Math.max(0, remainingTax - changedChildDeduction);
-        const changedLocalTax = Math.round(changedDecisionTax * 0.1);
-        
-        const refundNational = Math.max(0, originalDecisionTax - changedDecisionTax);
-        const refundLocal = Math.max(0, originalLocalTax - changedLocalTax);
-        const totalCourtFee = refundNational + refundLocal;
-        const expectedFee = Math.round(totalCourtFee * (selectedFeeRate / 100));
 
         setRegForm(prev => {
           const updatedYears = { ...prev.years };
-          updatedYears[yr] = {
+          const rawYrData = {
             active: true,
             isFileUploaded: true,
             pdfFile: file,
@@ -880,19 +919,17 @@ function App() {
             decisionTax: parsed.determinedIncomeTax || '0',
             localTax: parsed.determinedLocalTax || '0',
             taxRefundTotal: String(originalDecisionTax + originalLocalTax),
-            
-            childReductionApply: reductionAmt > 0 ? 'Y' : 'N',
-            childReductionApplyAmt: String(reductionAmt),
-            childDeductionApplyAmt: String(changedChildDeduction),
-            decisionTaxApplyAmt: String(changedDecisionTax),
-            localTaxApplyAmt: String(changedLocalTax),
-            decisionTaxRefundAmt: String(changedDecisionTax + changedLocalTax),
-            
-            refundExpectNational: String(refundNational),
-            refundExpectLocal: String(refundLocal),
-            courtFee: String(totalCourtFee),
-            expectedFeeAmt: String(expectedFee)
+            childReductionApply: 'Y',
           };
+
+          updatedYears[yr] = recalculateYearData(
+            rawYrData, 
+            prev.dependentsCount, 
+            prev.seniorCount, 
+            prev.disabledCount, 
+            prev.childCount, 
+            selectedFeeRate
+          );
 
           const updatedBasic: any = {};
           if (parsed.name && !prev.name) updatedBasic.name = parsed.name;
@@ -1841,13 +1878,13 @@ function App() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, dependentsCount: Math.max(0, prev.dependentsCount - 1) }))}
+                          onClick={() => updateDependentsCount('dependentsCount', -1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >-</button>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{regForm.dependentsCount}명</span>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, dependentsCount: prev.dependentsCount + 1 }))}
+                          onClick={() => updateDependentsCount('dependentsCount', 1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >+</button>
                       </div>
@@ -1862,13 +1899,13 @@ function App() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, seniorCount: Math.max(0, prev.seniorCount - 1) }))}
+                          onClick={() => updateDependentsCount('seniorCount', -1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >-</button>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{regForm.seniorCount}명</span>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, seniorCount: prev.seniorCount + 1 }))}
+                          onClick={() => updateDependentsCount('seniorCount', 1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >+</button>
                       </div>
@@ -1883,13 +1920,13 @@ function App() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, disabledCount: Math.max(0, prev.disabledCount - 1) }))}
+                          onClick={() => updateDependentsCount('disabledCount', -1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >-</button>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{regForm.disabledCount}명</span>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, disabledCount: prev.disabledCount + 1 }))}
+                          onClick={() => updateDependentsCount('disabledCount', 1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >+</button>
                       </div>
@@ -1904,13 +1941,13 @@ function App() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, childCount: Math.max(0, prev.childCount - 1) }))}
+                          onClick={() => updateDependentsCount('childCount', -1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >-</button>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{regForm.childCount}명</span>
                         <button
                           type="button"
-                          onClick={() => setRegForm(prev => ({ ...prev, childCount: prev.childCount + 1 }))}
+                          onClick={() => updateDependentsCount('childCount', 1)}
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >+</button>
                       </div>
