@@ -6,33 +6,69 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
- * Fetch all clients and their year-end tax records directly from Supabase
+ * Fetch ALL clients and their year-end tax records from Supabase using full pagination (bypassing 1,000 row default limit)
  */
 export async function fetchClientsFromSupabase() {
   try {
-    const { data: clients, error: clientErr } = await supabase
-      .from('Client')
-      .select('*')
-      .order('createdAt', { ascending: false });
+    // 1. Fetch ALL Client records across pages (Total ~24,634 records)
+    let allClients: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (clientErr) {
-      console.warn('Supabase Client fetch notice:', clientErr.message);
-      return null;
+    while (hasMore) {
+      const { data: clients, error: clientErr } = await supabase
+        .from('Client')
+        .select('*')
+        .order('createdAt', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (clientErr) {
+        console.warn('Supabase Client fetch notice:', clientErr.message);
+        break;
+      }
+
+      if (clients && clients.length > 0) {
+        allClients.push(...clients);
+        if (clients.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
-    if (!clients || clients.length === 0) {
-      return [];
+    // 2. Fetch ALL YearEndData records across pages (Total ~49,779 records)
+    let allYearEnds: any[] = [];
+    let yrPage = 0;
+    let yrHasMore = true;
+
+    while (yrHasMore) {
+      const { data: yearEnds, error: yearErr } = await supabase
+        .from('YearEndData')
+        .select('*')
+        .range(yrPage * pageSize, (yrPage + 1) * pageSize - 1);
+
+      if (yearErr) {
+        console.warn('Supabase YearEndData fetch notice:', yearErr.message);
+        break;
+      }
+
+      if (yearEnds && yearEnds.length > 0) {
+        allYearEnds.push(...yearEnds);
+        if (yearEnds.length < pageSize) {
+          yrHasMore = false;
+        } else {
+          yrPage++;
+        }
+      } else {
+        yrHasMore = false;
+      }
     }
 
-    const { data: yearEnds, error: yearErr } = await supabase
-      .from('YearEndData')
-      .select('*');
-
-    if (yearErr) {
-      console.warn('Supabase YearEndData fetch notice:', yearErr.message);
-    }
-
-    return { clients, yearEnds: yearEnds || [] };
+    return { clients: allClients, yearEnds: allYearEnds };
   } catch (err) {
     console.error('Supabase fetch exception:', err);
     return null;
