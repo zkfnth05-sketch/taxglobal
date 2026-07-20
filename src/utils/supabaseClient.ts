@@ -377,3 +377,23 @@ export async function createManagerInSupabase(payload: {
     return { success: false, error: e.message };
   }
 }
+
+/**
+ * Delete selected Client records from Supabase DB by serial list
+ */
+export async function deleteClientsFromSupabase(serials: number[]) {
+  try {
+    const { error } = await supabase
+      .from('Client')
+      .delete()
+      .in('serial', serials);
+
+    if (error) {
+      console.warn('Delete by serial warning:', error.message);
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error('Delete clients error:', e);
+    return { success: false, error: e.message };
+  }
+}

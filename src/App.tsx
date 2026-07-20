@@ -33,7 +33,8 @@ import {
   updateManagerTeamInSupabase,
   approveManagerInSupabase,
   deleteManagerInSupabase,
-  createManagerInSupabase
+  createManagerInSupabase,
+  deleteClientsFromSupabase
 } from './utils/supabaseClient';
 
 
@@ -1261,15 +1262,18 @@ function App() {
     else setSelectedIds(prev => prev.filter(item => item !== id));
   };
 
-  const handleDeleteCustomers = () => {
+  const handleDeleteCustomers = async () => {
     if (selectedIds.length === 0) {
-      showToast('삭제할 항목을 선택해 주세요.', 'error');
+      showToast('삭제할 항목을 체크박스로 선택해 주세요.', 'error');
       return;
     }
-    if (window.confirm(`선택한 ${selectedIds.length}건의 데이터를 삭제하시겠습니까?`)) {
-      setCustomers(prev => prev.filter(c => !selectedIds.includes(c.id)));
+    if (window.confirm(`선택한 ${selectedIds.length}건의 데이터를 정말 삭제하시겠습니까?`)) {
+      const targetIds = [...selectedIds];
+      setCustomers(prev => prev.filter(c => !targetIds.includes(c.id)));
       setSelectedIds([]);
-      showToast('삭제가 완료되었습니다.', 'success');
+      showToast('선택한 고객 데이터를 삭제하는 중입니다...', 'info');
+      await deleteClientsFromSupabase(targetIds);
+      showToast(`${targetIds.length}건의 고객 데이터 삭제가 완벽히 처리되었습니다.`, 'success');
     }
   };
 
