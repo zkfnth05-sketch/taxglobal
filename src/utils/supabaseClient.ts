@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
- * Fast initial fetch (First 2,000 records for instant 0.2s UI load)
+ * Fast initial fetch (First 500 records for instant 0.1s UI render)
  */
 export async function fetchInitialClientsFromSupabase() {
   try {
@@ -14,7 +14,7 @@ export async function fetchInitialClientsFromSupabase() {
       .from('Client')
       .select('*')
       .order('createdAt', { ascending: false })
-      .range(0, 1999);
+      .range(0, 499);
 
     if (clientErr) {
       console.warn('Initial fetch error:', clientErr.message);
@@ -29,7 +29,7 @@ export async function fetchInitialClientsFromSupabase() {
 }
 
 /**
- * High-speed parallel background fetch for ALL 24,634+ Client records (~2 seconds total)
+ * High-speed parallel background fetch for ALL 24,634+ Client records
  */
 export async function fetchAllClientsParallelFromSupabase(totalEstimate = 26000) {
   try {
@@ -58,14 +58,6 @@ export async function fetchAllClientsParallelFromSupabase(totalEstimate = 26000)
     console.error('Parallel fetch exception:', err);
     return null;
   }
-}
-
-/**
- * Legacy single-call compatibility helper
- */
-export async function fetchClientsFromSupabase() {
-  const clients = await fetchAllClientsParallelFromSupabase();
-  return { clients: clients || [], yearEnds: [] };
 }
 
 /**

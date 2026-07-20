@@ -248,6 +248,8 @@ function App() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [isNewStaffModalOpen, setIsNewStaffModalOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 50;
 
   // Load Supabase initial data with ultra-fast 2-stage parallel streaming
   useEffect(() => {
@@ -1050,6 +1052,9 @@ function App() {
     return matchesSearch && matchesNationality && matchesRefundStatus && matchesManager;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / itemsPerPage));
+  const displayedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <>
       {toast && (
@@ -1225,7 +1230,7 @@ function App() {
                             </td>
                           </tr>
                         ) : (
-                          filteredCustomers.map((customer) => {
+                          displayedCustomers.map((customer) => {
                             let refundClass = 'badge-pending';
                             if (customer.refundStatus.includes('상담중')) refundClass = 'badge-consult';
                             if (customer.refundStatus.includes('요청') || customer.refundStatus.includes('가입요청')) refundClass = 'badge-request';
@@ -1299,6 +1304,27 @@ function App() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* Smooth Pagination Navigation Bar */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', padding: '16px 24px', backgroundColor: '#fff', borderTop: '1px solid #e2e8f0', marginTop: '12px', borderRadius: '8px' }}>
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    style={{ padding: '8px 18px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage === 1 ? '#f8fafc' : '#fff', color: currentPage === 1 ? '#94a3b8' : '#0284c7', fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                  >
+                    ◀ 이전 페이지
+                  </button>
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: '#334155' }}>
+                    <span style={{ color: '#0284c7', fontWeight: 700, fontSize: '16px' }}>{currentPage}</span> / {totalPages} 페이지 (총 {filteredCustomers.length.toLocaleString()}건 중 50건씩 표시)
+                  </span>
+                  <button
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    style={{ padding: '8px 18px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage >= totalPages ? '#f8fafc' : '#fff', color: currentPage >= totalPages ? '#94a3b8' : '#0284c7', fontWeight: 600, cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer' }}
+                  >
+                    다음 페이지 ▶
+                  </button>
                 </div>
 
                 {isFilterModalOpen && (
