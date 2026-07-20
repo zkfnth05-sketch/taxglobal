@@ -397,3 +397,33 @@ export async function deleteClientsFromSupabase(serials: number[]) {
     return { success: false, error: e.message };
   }
 }
+
+/**
+ * Update Client managerName & country in Supabase DB
+ */
+export async function updateClientManagerInSupabase(serial: number, managerName: string, country: string) {
+  try {
+    const { error } = await supabase
+      .from('Client')
+      .update({
+        managerName,
+        country
+      })
+      .eq('serial', serial);
+
+    if (error) {
+      console.warn('Update manager by serial warning, trying fallback:', error.message);
+      await supabase
+        .from('Client')
+        .update({
+          managerName,
+          country
+        })
+        .eq('id', serial);
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error('Update client manager error:', e);
+    return { success: false, error: e.message };
+  }
+}

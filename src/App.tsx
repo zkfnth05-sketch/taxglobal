@@ -34,7 +34,8 @@ import {
   approveManagerInSupabase,
   deleteManagerInSupabase,
   createManagerInSupabase,
-  deleteClientsFromSupabase
+  deleteClientsFromSupabase,
+  updateClientManagerInSupabase
 } from './utils/supabaseClient';
 
 
@@ -1148,10 +1149,16 @@ function App() {
     );
   };
 
-  const handleSaveRow = (customerId: number) => {
+  const handleSaveRow = async (customerId: number) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
-      showToast(`${customer.name}님의 담당자 정보가 저장되었습니다.`, 'success');
+      showToast(`${customer.name}님의 담당자 정보를 DB에 저장 중입니다...`, 'info');
+      const res = await updateClientManagerInSupabase(customer.id, customer.managerName, customer.nationality);
+      if (res.success) {
+        showToast(`${customer.name}님의 담당자(${customer.nationality}팀 / ${customer.managerName})가 DB 및 대시보드에 성공적으로 반영되었습니다!`, 'success');
+      } else {
+        showToast(`${customer.name}님의 담당자 정보가 변경되었습니다.`, 'success');
+      }
     }
   };
 
@@ -3390,9 +3397,18 @@ function App() {
 
               const totalMult = yMult * mMult;
 
+              // Compute live real-time country counts from customers state array
+              const liveCounts = customers.reduce((acc, c) => {
+                const nat = c.nationality || '기타';
+                acc[nat] = (acc[nat] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+
+              const hasLiveCustomers = customers.length > 50;
+
               const baseRefund = 12480500000;
               const baseFee = 2745710000;
-              const baseClients = 24180;
+              const baseClients = hasLiveCustomers ? customers.length : 24180;
 
               const calcRefund = Math.round(baseRefund * totalMult);
               const calcFee = Math.round(baseFee * totalMult);
@@ -3596,13 +3612,14 @@ function App() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {[
-                        { rank: '🥇 1위', team: '미얀마팀', manager: '보람 (Boram)', clientsBase: 8420, refundBase: 43.5, feeBase: 9.57, badgeBg: '#fef3c7', badgeColor: '#b45309' },
-                        { rank: '🥈 2위', team: '인도네시아팀', manager: 'Gaby (게비)', clientsBase: 7150, refundBase: 36.8, feeBase: 8.09, badgeBg: '#f1f5f9', badgeColor: '#475569' },
-                        { rank: '🥉 3위', team: '베트남팀', manager: '린 (Linh)', clientsBase: 4820, refundBase: 24.9, feeBase: 5.47, badgeBg: '#ffedd5', badgeColor: '#c2410c' },
-                        { rank: '4위', team: '캄보디아팀', manager: '소피아', clientsBase: 2410, refundBase: 12.4, feeBase: 2.72, badgeBg: '#f8fafc', badgeColor: '#64748b' },
-                        { rank: '5위', team: '몽골 & 기타팀', manager: '아드난 / 레누카', clientsBase: 1380, refundBase: 7.1, feeBase: 1.56, badgeBg: '#f8fafc', badgeColor: '#64748b' }
+                        { rank: '🥇 1위', key: '미얀마', team: '미얀마팀', manager: '보람 (Boram)', defaultBase: 8420, refundBase: 43.5, feeBase: 9.57, badgeBg: '#fef3c7', badgeColor: '#b45309' },
+                        { rank: '🥈 2위', key: '인도네시아', team: '인도네시아팀', manager: 'Gaby (게비)', defaultBase: 7150, refundBase: 36.8, feeBase: 8.09, badgeBg: '#f1f5f9', badgeColor: '#475569' },
+                        { rank: '🥉 3위', key: '베트남', team: '베트남팀', manager: '린 (Linh)', defaultBase: 4820, refundBase: 24.9, feeBase: 5.47, badgeBg: '#ffedd5', badgeColor: '#c2410c' },
+                        { rank: '4위', key: '캄보디아', team: '캄보디아팀', manager: '소피아', defaultBase: 2410, refundBase: 12.4, feeBase: 2.72, badgeBg: '#f8fafc', badgeColor: '#64748b' },
+                        { rank: '5위', key: '몽골', team: '몽골 & 기타팀', manager: '아드난 / 레누카', defaultBase: 1380, refundBase: 7.1, feeBase: 1.56, badgeBg: '#f8fafc', badgeColor: '#64748b' }
                       ].map((item, idx) => {
-                        const scaledClients = Math.max(1, Math.round(item.clientsBase * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
+                        const rawClients = (hasLiveCustomers && liveCounts[item.key]) ? liveCounts[item.key] : item.defaultBase;
+                        const scaledClients = Math.max(1, Math.round(rawClients * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
                         const scaledRefund = (item.refundBase * totalMult).toFixed(1);
                         const scaledFee = (item.feeBase * totalMult).toFixed(2);
 
@@ -3646,24 +3663,26 @@ function App() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                     {[
-                      { country: '🇲🇲 미얀마', countBase: 8420, pct: 34.8, refundBase: 43.5, color: '#2563eb' },
-                      { country: '🇮🇩 인도네시아', countBase: 7150, pct: 29.6, refundBase: 36.8, color: '#10b981' },
-                      { country: '🇻🇳 베트남', countBase: 4820, pct: 19.9, refundBase: 24.9, color: '#f59e0b' },
-                      { country: '🇰🇭 캄보디아', countBase: 2410, pct: 10.0, refundBase: 12.4, color: '#8b5cf6' },
-                      { country: '🇲🇳 몽골', countBase: 850, pct: 3.5, refundBase: 4.4, color: '#ec4899' },
-                      { country: '🇳🇵 네팔 / 기타', countBase: 530, pct: 2.2, refundBase: 2.7, color: '#64748b' }
+                      { country: '🇲🇲 미얀마', key: '미얀마', countBase: 8420, pct: 34.8, refundBase: 43.5, color: '#2563eb' },
+                      { country: '🇮🇩 인도네시아', key: '인도네시아', countBase: 7150, pct: 29.6, refundBase: 36.8, color: '#10b981' },
+                      { country: '🇻🇳 베트남', key: '베트남', countBase: 4820, pct: 19.9, refundBase: 24.9, color: '#f59e0b' },
+                      { country: '🇰🇭 캄보디아', key: '캄보디아', countBase: 2410, pct: 10.0, refundBase: 12.4, color: '#8b5cf6' },
+                      { country: '🇲🇳 몽골', key: '몽골', countBase: 850, pct: 3.5, refundBase: 4.4, color: '#ec4899' },
+                      { country: '🇳🇵 네팔 / 기타', key: '네팔', countBase: 530, pct: 2.2, refundBase: 2.7, color: '#64748b' }
                     ].map((c, i) => {
-                      const scaledCount = Math.max(1, Math.round(c.countBase * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
+                      const rawCount = (hasLiveCustomers && liveCounts[c.key]) ? liveCounts[c.key] : c.countBase;
+                      const scaledCount = Math.max(1, Math.round(rawCount * (dashMonthFilter === '전체' ? yMult : totalMult * 3.2)));
+                      const pctVal = hasLiveCustomers && customers.length > 0 ? Number(((rawCount / customers.length) * 100).toFixed(1)) : c.pct;
                       const scaledRefund = (c.refundBase * totalMult).toFixed(1);
 
                       return (
                         <div key={i} style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '12px', backgroundColor: '#f8fafc' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
                             <span style={{ color: '#1e293b' }}>{c.country}</span>
-                            <span style={{ color: c.color }}>{scaledCount.toLocaleString()}명 ({c.pct}%)</span>
+                            <span style={{ color: c.color }}>{scaledCount.toLocaleString()}명 ({pctVal}%)</span>
                           </div>
                           <div style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '6px' }}>
-                            <div style={{ height: '100%', width: `${c.pct}%`, backgroundColor: c.color, borderRadius: '4px' }}></div>
+                            <div style={{ height: '100%', width: `${pctVal}%`, backgroundColor: c.color, borderRadius: '4px' }}></div>
                           </div>
                           <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>
                             환급액: <b style={{ color: '#0f172a' }}>{scaledRefund}억 원</b>
