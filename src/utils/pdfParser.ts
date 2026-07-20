@@ -57,28 +57,31 @@ export const parsePdfText = (text: string, targetYear?: string): ParsedPdfResult
   };
 
   // 1. 근무기간 및 귀속연도
-  let year = targetYear || '';
+  let year = '';
   let workPeriod = '';
-  const periodMatch = cleanText.match(/(?:근\s*무\s*기\s*간|근무기간)\s*(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2}|\d{2}-\d{2})/);
+  const periodMatch = cleanText.match(/(?:근\s*무\s*기\s*간|근무기간)\s*(\d{4}[-./]\d{2}[-./]\d{2})\s*~\s*(\d{4}[-./]\d{2}[-./]\d{2}|\d{2}[-./]\d{2})/);
   if (periodMatch) {
-    const start = periodMatch[1];
-    let end = periodMatch[2];
+    const start = periodMatch[1].replace(/[./]/g, '-');
+    let end = periodMatch[2].replace(/[./]/g, '-');
     if (end.length === 5) { // MM-DD format
       const startYear = start.substring(0, 4);
       end = `${startYear}-${end}`;
     }
     workPeriod = `${start} ~ ${end}`;
-    if (!year) {
-      year = start.substring(0, 4);
-    }
+    year = start.substring(0, 4);
   }
 
-  // Fallback for year
+  // Fallback for year from PDF text
   if (!year) {
-    const yearMatch = cleanText.match(/(202\d)\s*(?:년)?\s*귀\s*속/i) || cleanText.match(/귀\s*속\s*(?:연\s*도)?\s*(202\d)/i);
+    const yearMatch = cleanText.match(/(202\d)\s*(?:년)?\s*귀\s*속/i) || cleanText.match(/귀\s*속\s*(?:연\s*도)?\s*(202\d)/i) || cleanText.match(/(202\d)\s*년도/);
     if (yearMatch) {
       year = yearMatch[1];
     }
+  }
+
+  // Fallback to targetYear only if PDF text does not specify year
+  if (!year && targetYear) {
+    year = targetYear;
   }
 
   // 2. 소득자 정보 (성명, 주민등록번호)
