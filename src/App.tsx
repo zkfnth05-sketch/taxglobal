@@ -1631,14 +1631,15 @@ function App() {
                           <th>월세여부</th>
                           <th>경정청구일</th>
                           <th>추가 신청인 실적</th>
-                          <th style={{ minWidth: '170px' }}>담당자 변경</th>
-                          <th style={{ width: '70px', textAlign: 'center' }}>저장</th>
+                          <th style={{ minWidth: '190px', textAlign: 'center', position: 'sticky', right: 0, backgroundColor: '#0e1834', zIndex: 10, boxShadow: '-3px 0 6px rgba(0, 0, 0, 0.15)' }}>
+                            담당자 변경 / 저장
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredCustomers.length === 0 ? (
                           <tr>
-                            <td colSpan={15} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                            <td colSpan={14} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                               조건에 맞는 고객 정보가 존재하지 않습니다.
                             </td>
                           </tr>
@@ -1701,11 +1702,11 @@ function App() {
                                 <td>{customer.monthlyRent}</td>
                                 <td>{customer.claimDate}</td>
                                 <td>{customer.additionalPerformance}</td>
-                                <td>
-                                  <div className="inline-edit" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                <td style={{ textAlign: 'center', position: 'sticky', right: 0, backgroundColor: '#ffffff', zIndex: 5, boxShadow: '-3px 0 6px rgba(0, 0, 0, 0.08)' }}>
+                                  <div className="inline-edit" style={{ display: 'flex', gap: '3px', alignItems: 'center', justifyContent: 'center' }}>
                                     <select
                                       className="select-sm"
-                                      style={{ fontSize: '12px', padding: '2px 4px', height: '28px' }}
+                                      style={{ fontSize: '11px', padding: '2px 2px', height: '26px', maxWidth: '75px' }}
                                       value={customer.nationality}
                                       onChange={(e) => handleInlineCountryChange(customer.id, e.target.value)}
                                     >
@@ -1713,22 +1714,20 @@ function App() {
                                     </select>
                                     <select
                                       className="select-sm"
-                                      style={{ fontSize: '12px', padding: '2px 4px', height: '28px' }}
+                                      style={{ fontSize: '11px', padding: '2px 2px', height: '26px', maxWidth: '70px' }}
                                       value={customer.managerName}
                                       onChange={(e) => handleInlineManagerChange(customer.id, e.target.value)}
                                     >
                                       {availableManagerList.map(mName => <option key={mName} value={mName}>{mName}</option>)}
                                     </select>
+                                    <button 
+                                      className="btn-save" 
+                                      style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 4px rgba(37,99,235,0.2)' }}
+                                      onClick={() => handleSaveRow(customer.id)}
+                                    >
+                                      저장
+                                    </button>
                                   </div>
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button 
-                                    className="btn-save" 
-                                    style={{ backgroundColor: '#1e293b', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 10px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-                                    onClick={() => handleSaveRow(customer.id)}
-                                  >
-                                    저장
-                                  </button>
                                 </td>
                               </tr>
                             );
