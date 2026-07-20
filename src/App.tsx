@@ -1580,7 +1580,7 @@ function App() {
                       <tbody>
                         {filteredCustomers.length === 0 ? (
                           <tr>
-                            <td colSpan={14} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                            <td colSpan={15} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                               조건에 맞는 고객 정보가 존재하지 않습니다.
                             </td>
                           </tr>
