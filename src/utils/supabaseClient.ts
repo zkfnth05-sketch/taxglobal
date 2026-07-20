@@ -399,26 +399,45 @@ export async function deleteClientsFromSupabase(serials: number[]) {
 }
 
 /**
- * Update Client managerName & country in Supabase DB
+ * Update Client managerId, teamId & country in Supabase DB
  */
 export async function updateClientManagerInSupabase(serial: number, managerName: string, country: string) {
   try {
+    const updatePayload: any = { country };
+
+    // Resolve Manager ID from Manager table
+    if (managerName) {
+      const { data: mgrs } = await supabase.from('Manager').select('id, teamId, name');
+      if (mgrs) {
+        const found = mgrs.find(m => m.name && m.name.trim() === managerName.trim());
+        if (found) {
+          updatePayload.managerId = found.id;
+          if (found.teamId) updatePayload.teamId = found.teamId;
+        }
+      }
+    }
+
+    // Resolve Team ID from Team table if not found from manager
+    if (!updatePayload.teamId && country) {
+      const { data: teams } = await supabase.from('Team').select('id, name');
+      if (teams) {
+        const found = teams.find(t => t.name && t.name.includes(country.replace('팀', '').trim()));
+        if (found) {
+          updatePayload.teamId = found.id;
+        }
+      }
+    }
+
     const { error } = await supabase
       .from('Client')
-      .update({
-        managerName,
-        country
-      })
+      .update(updatePayload)
       .eq('serial', serial);
 
     if (error) {
-      console.warn('Update manager by serial warning, trying fallback:', error.message);
+      console.warn('Update manager by serial warning, trying fallback by id:', error.message);
       await supabase
         .from('Client')
-        .update({
-          managerName,
-          country
-        })
+        .update(updatePayload)
         .eq('id', serial);
     }
     return { success: true };

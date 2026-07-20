@@ -280,15 +280,28 @@ function App() {
   const [managerPage, setManagerPage] = useState<number>(1);
   const managerItemsPerPage = 10;
 
+  // Dynamic All Available Teams/Countries List (Combining DB teams, default teams, and customer nationalities)
+  const availableTeamList = useMemo(() => {
+    const teams = new Set<string>();
+    if (dbTeams && dbTeams.length > 0) {
+      dbTeams.forEach(t => { if (t && t.name) teams.add(t.name); });
+    }
+    ['미얀마', '인도네시아', '베트남', '캄보디아', '몽골', '네팔', '방글라데시', '우즈베키스탄', '파키스탄', '필리핀', '태국', '스리랑카'].forEach(c => teams.add(c));
+    if (customers && customers.length > 0) {
+      customers.forEach(c => { if (c && c.nationality) teams.add(c.nationality); });
+    }
+    return Array.from(teams).filter(Boolean);
+  }, [dbTeams, customers]);
+
   // Dynamic All Available Managers List (Combining DB staff managers, default managers, and customer managers)
   const availableManagerList = useMemo(() => {
     const names = new Set<string>();
     if (dbManagers && dbManagers.length > 0) {
-      dbManagers.forEach(m => { if (m && m.name) names.add(m.name); });
+      dbManagers.forEach(m => { if (m && m.name) names.add(m.name.trim()); });
     }
-    ['Boram', 'Jennie', '사이풀', 'Gaby', 'Linh', '소피아', '레누카', '아드난', '타리크', '사비르'].forEach(n => names.add(n));
+    ['Boram', 'Jennie', '사이풀', 'Gaby', 'Linh', '소피아', '레누카', '아드난', '디노라', '안토', '한지윤', '이두원', '사공지희', '원호아', '예리', '마두', '게렐', 'Inosha'].forEach(n => names.add(n));
     if (customers && customers.length > 0) {
-      customers.forEach(c => { if (c && c.managerName) names.add(c.managerName); });
+      customers.forEach(c => { if (c && c.managerName) names.add(c.managerName.trim()); });
     }
     return Array.from(names).filter(Boolean);
   }, [dbManagers, customers]);
@@ -414,12 +427,19 @@ function App() {
     return `${year}년 ${month}월 ${day}일 ${ampm} ${hours}:${minutes}`;
   };
 
-  // Load Supabase initial data with ultra-fast 2-stage parallel streaming
+  // Load Supabase initial data with ultra-fast 2-stage parallel streaming & dynamic staff mapping
   useEffect(() => {
-    loadStaffData();
     async function loadSupabaseData() {
       try {
-        // Stage 1: Ultra-fast initial load (first 2,000 recent items in ~0.2s)
+        const teams = await fetchTeamsFromSupabase();
+        const mgrs = await fetchManagersFromSupabase();
+        setDbTeams(teams);
+        setDbManagers(mgrs);
+
+        const mgrMap = new Map((mgrs || []).map((m: any) => [m.id, m.name ? m.name.trim() : '']));
+        const teamMap = new Map((teams || []).map((t: any) => [t.id, t.name ? t.name.trim() : '']));
+
+        // Stage 1: Ultra-fast initial load (first 500 recent items in ~0.2s)
         const initialClients = await fetchInitialClientsFromSupabase();
         if (initialClients && initialClients.length > 0) {
           const mappedInitial: Customer[] = initialClients.map((c: any, idx: number) => {
@@ -434,10 +454,13 @@ function App() {
               return s;
             };
 
+            const nat = c.country || teamMap.get(c.teamId) || '인도네시아';
+            const resolvedMgr = mgrMap.get(c.managerId) || c.managerName || (nat === '미얀마' ? 'Boram' : nat === '베트남' ? 'Linh' : nat === '네팔' ? '레누카' : nat === '방글라데시' ? '사이풀' : nat === '필리핀' ? 'Jennie' : 'Gaby');
+
             return {
               id: c.serial || (25000 + idx),
               registeredDate,
-              nationality: c.country || '인도네시아',
+              nationality: nat,
               name: c.name || '미상',
               birthDate: c.regNum || '-',
               visa: c.visa || 'E9',
@@ -447,8 +470,8 @@ function App() {
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
               claimDate: parseDate(c.rectificationRequestDate || c.taxReductionSentDate || c.recordFileDate || c.claimDate || c.rectificationDate),
               additionalPerformance: c.additionalPerformance || 0,
-              managerCountry: c.country || '인도네시아',
-              managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
+              managerCountry: nat,
+              managerName: resolvedMgr,
             };
           });
 
@@ -470,10 +493,13 @@ function App() {
               return s;
             };
 
+            const nat = c.country || teamMap.get(c.teamId) || '인도네시아';
+            const resolvedMgr = mgrMap.get(c.managerId) || c.managerName || (nat === '미얀마' ? 'Boram' : nat === '베트남' ? 'Linh' : nat === '네팔' ? '레누카' : nat === '방글라데시' ? '사이풀' : nat === '필리핀' ? 'Jennie' : 'Gaby');
+
             return {
               id: c.serial || (25000 + idx),
               registeredDate,
-              nationality: c.country || '인도네시아',
+              nationality: nat,
               name: c.name || '미상',
               birthDate: c.regNum || '-',
               visa: c.visa || 'E9',
@@ -483,8 +509,8 @@ function App() {
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
               claimDate: parseDate(c.rectificationRequestDate || c.taxReductionSentDate || c.recordFileDate || c.claimDate || c.rectificationDate),
               additionalPerformance: c.additionalPerformance || 0,
-              managerCountry: c.country || '인도네시아',
-              managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
+              managerCountry: nat,
+              managerName: resolvedMgr,
             };
           });
 
@@ -1683,7 +1709,7 @@ function App() {
                                       value={customer.nationality}
                                       onChange={(e) => handleInlineCountryChange(customer.id, e.target.value)}
                                     >
-                                      {nationalities.map(n => <option key={n} value={n}>{n}</option>)}
+                                      {availableTeamList.map(n => <option key={n} value={n}>{n}</option>)}
                                     </select>
                                     <select
                                       className="select-sm"
