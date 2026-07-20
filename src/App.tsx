@@ -16,6 +16,8 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { extractTextFromPdf, parsePdfText } from './utils/pdfParser';
+import { fetchClientsFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
+
 
 // Define customer interface
 interface Customer {
@@ -247,6 +249,48 @@ function App() {
   const [isNewStaffModalOpen, setIsNewStaffModalOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
+  // Load Supabase initial data
+  useEffect(() => {
+    async function loadSupabaseData() {
+      try {
+        const dbData = await fetchClientsFromSupabase();
+        if (dbData && Array.isArray((dbData as any).clients) && (dbData as any).clients.length > 0) {
+          const fetchedClients: Customer[] = (dbData as any).clients.map((c: any, idx: number) => {
+            const registeredDate = c.createdAt
+              ? new Date(c.createdAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })
+              : '26. 7. 15.';
+
+            return {
+              id: c.serial || (25000 + idx),
+              registeredDate,
+              nationality: c.country || '인도네시아',
+              name: c.name || '미상',
+              birthDate: c.regNum || '-',
+              visa: c.visa || 'E9',
+              companyName: c.company || '-',
+              refundStatus: '◎경정상담중',
+              submissionStatus: '◎재직회사제출',
+              monthlyRent: c.isMonthlyRent ? '예' : '아니오',
+              claimDate: '-',
+              additionalPerformance: 0,
+              managerCountry: c.country || '인도네시아',
+              managerName: 'Gaby',
+            };
+          });
+
+          setCustomers(prev => {
+            const existingRegNums = new Set(prev.map(p => p.birthDate));
+            const uniqueNew = fetchedClients.filter(fc => !existingRegNums.has(fc.birthDate));
+            return [...uniqueNew, ...prev];
+          });
+        }
+      } catch (e) {
+        console.warn('Initial Supabase fetch catch:', e);
+      }
+    }
+    loadSupabaseData();
+  }, []);
+
   // New Customer detail data (matching the complex form layout from the screenshot)
   const [regForm, setRegForm] = useState({
     // Basic Details
@@ -446,6 +490,13 @@ function App() {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast(`[${yr}년도] PDF 원본 파일 다운로드를 완료했습니다.`, 'success');
+      return;
+    }
+
+    // 1-2. Supabase Storage uploaded file URL
+    if ((yearData as any)?.fileURL) {
+      window.open((yearData as any).fileURL, '_blank');
+      showToast(`[${yr}년도] Supabase 스토리지 원본 PDF 파일을 엽니다.`, 'success');
       return;
     }
 
@@ -874,7 +925,7 @@ function App() {
   };
 
   // Save complex registration form
-  const handleSaveRegistration = () => {
+  const handleSaveRegistration = async () => {
     if (!regForm.name || !regForm.foreignerNumber) {
       showToast('신청인 이름과 외국인 등록번호는 필수입니다.', 'error');
       return;
@@ -892,7 +943,7 @@ function App() {
       name: regForm.name.toUpperCase(),
       birthDate: regForm.foreignerNumber,
       visa: regForm.visaType,
-      companyName: regForm.years['2025'].workPlace || regForm.years['2024'].workPlace || '-',
+      companyName: regForm.years['2025']?.workPlace || regForm.years['2024']?.workPlace || '-',
       refundStatus: regForm.refundStatus,
       submissionStatus: regForm.deductionSubmissionStatus,
       monthlyRent: regForm.isMonthlyRent === '가' ? '예' : '아니오',
@@ -903,7 +954,28 @@ function App() {
     };
 
     setCustomers(prev => [newCustomerItem, ...prev]);
-    showToast('고객 정보 및 세액 계산 결과가 저장되었습니다.', 'success');
+
+    // Gather uploaded PDF file objects for each year
+    const pdfFiles: Record<string, File | null> = {
+      '2022': regForm.years['2022']?.pdfFile || null,
+      '2023': regForm.years['2023']?.pdfFile || null,
+      '2024': regForm.years['2024']?.pdfFile || null,
+      '2025': regForm.years['2025']?.pdfFile || null,
+    };
+
+    showToast('Supabase 클라우드 저장소에 고객 정보 및 PDF 파일 동기화를 진행 중입니다...', 'info');
+
+    try {
+      const res = await saveRegistrationToSupabase(regForm, pdfFiles);
+      if (res && res.success) {
+        showToast('고객 정보, 정산 결과 및 PDF 파일이 Supabase DB에 완벽히 동기화되었습니다!', 'success');
+      } else {
+        showToast('로컬 저장은 완료되었으나, Supabase 동기화 중 권한/네트워크 주의사항이 있습니다.', 'info');
+      }
+    } catch (err) {
+      console.warn('Supabase save error:', err);
+    }
+
     setCurrentView('customer'); // Return to list view
   };
 
