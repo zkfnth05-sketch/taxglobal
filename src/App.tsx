@@ -12,11 +12,22 @@ import {
   Search,
   X,
   CheckCircle2,
-  FileSpreadsheet,
-  PlusCircle
+  FileSpreadsheet
 } from 'lucide-react';
 import { extractTextFromPdf, parsePdfText } from './utils/pdfParser';
-import { supabase, fetchInitialClientsFromSupabase, fetchAllClientsParallelFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
+import {
+  supabase,
+  fetchInitialClientsFromSupabase,
+  fetchAllClientsParallelFromSupabase,
+  saveRegistrationToSupabase,
+  fetchTeamsFromSupabase,
+  fetchManagersFromSupabase,
+  createTeamInSupabase,
+  deleteTeamInSupabase,
+  updateManagerTeamInSupabase,
+  approveManagerInSupabase,
+  deleteManagerInSupabase
+} from './utils/supabaseClient';
 
 
 // Define customer interface
@@ -227,7 +238,7 @@ function App() {
   ]);
 
   // Staff State
-  const [managers, setManagers] = useState<Manager[]>([
+  const [managers] = useState<Manager[]>([
     { name: 'Gaby', country: '인도네시아', email: 'gaby@novel-tax.kr', phone: '010-1234-5678', activeCount: 3 },
     { name: '레누카', country: '네팔', email: 'renuka@novel-tax.kr', phone: '010-2345-6789', activeCount: 6 },
     { name: '아드난', country: '파키스탄', email: 'adnan@novel-tax.kr', phone: '010-3456-7890', activeCount: 1 },
@@ -246,13 +257,99 @@ function App() {
 
   // UI state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
-  const [isNewStaffModalOpen, setIsNewStaffModalOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 50;
 
+  // Supabase Staff Management State (Team & Manager)
+  const [dbTeams, setDbTeams] = useState<any[]>([]);
+  const [dbManagers, setDbManagers] = useState<any[]>([]);
+  const [managerPage, setManagerPage] = useState<number>(1);
+  const managerItemsPerPage = 10;
+
+  const loadStaffData = async () => {
+    const teams = await fetchTeamsFromSupabase();
+    const mgrs = await fetchManagersFromSupabase();
+    setDbTeams(teams);
+    setDbManagers(mgrs);
+  };
+
+  // Team & Manager Handlers
+  const handleCreateTeam = async () => {
+    const teamName = window.prompt('신규 생성할 팀 이름을 입력하세요 (예: 파키스탄, 베트남팀):');
+    if (!teamName || !teamName.trim()) return;
+
+    showToast('팀을 생성하는 중입니다...', 'info');
+    const res = await createTeamInSupabase(teamName.trim());
+    if (res.success) {
+      showToast(`'${teamName}' 팀이 성공적으로 생성되었습니다.`, 'success');
+      loadStaffData();
+    } else {
+      showToast(`팀 생성 실패: ${res.error}`, 'error');
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: number, teamName: string) => {
+    if (!window.confirm(`'${teamName}' 팀을 삭제하시겠습니까?`)) return;
+
+    showToast('팀을 삭제하는 중입니다...', 'info');
+    const res = await deleteTeamInSupabase(teamId);
+    if (res.success) {
+      showToast(`'${teamName}' 팀이 삭제되었습니다.`, 'info');
+      loadStaffData();
+    } else {
+      showToast(`팀 삭제 실패: ${res.error}`, 'error');
+    }
+  };
+
+  const handleUpdateManagerTeam = async (managerId: string, newTeamId: number) => {
+    const res = await updateManagerTeamInSupabase(managerId, newTeamId);
+    if (res.success) {
+      showToast('매니저 소속 팀이 업데이트되었습니다.', 'success');
+      setDbManagers(prev => prev.map(m => m.id === managerId ? { ...m, teamId: newTeamId } : m));
+    } else {
+      showToast(`팀 변경 실패: ${res.error}`, 'error');
+    }
+  };
+
+  const handleApproveManager = async (managerId: string, managerName: string) => {
+    const res = await approveManagerInSupabase(managerId);
+    if (res.success) {
+      showToast(`${managerName} 매니저 가입이 승인되었습니다.`, 'success');
+      setDbManagers(prev => prev.map(m => m.id === managerId ? { ...m, isConfirmed: true } : m));
+    } else {
+      showToast(`가입 승인 실패: ${res.error}`, 'error');
+    }
+  };
+
+  const handleDeleteManager = async (managerId: string, managerName: string) => {
+    if (!window.confirm(`${managerName} 매니저를 삭제하시겠습니까?`)) return;
+
+    const res = await deleteManagerInSupabase(managerId);
+    if (res.success) {
+      showToast(`${managerName} 매니저 정보가 삭제되었습니다.`, 'info');
+      setDbManagers(prev => prev.filter(m => m.id !== managerId));
+    } else {
+      showToast(`매니저 삭제 실패: ${res.error}`, 'error');
+    }
+  };
+
+  const formatKoreanDateTime = (isoString: string) => {
+    if (!isoString) return '-';
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? '오후' : '오전';
+    hours = hours % 12 || 12;
+    return `${year}년 ${month}월 ${day}일 ${ampm} ${hours}:${minutes}`;
+  };
+
   // Load Supabase initial data with ultra-fast 2-stage parallel streaming
   useEffect(() => {
+    loadStaffData();
     async function loadSupabaseData() {
       try {
         // Stage 1: Ultra-fast initial load (first 2,000 recent items in ~0.2s)
@@ -365,13 +462,6 @@ function App() {
     refundPerformanceDate: '',
     feeReceivedPerformance: '0',
     feeReceivedDate: ''
-  });
-
-  const [newStaff, setNewStaff] = useState<Omit<Manager, 'activeCount'>>({
-    name: '',
-    country: '네팔',
-    email: '',
-    phone: '',
   });
 
   // Dynamic Years for Settlement
@@ -1096,18 +1186,6 @@ function App() {
     }
 
     setCurrentView('customer'); // Return to list view
-  };
-
-  const handleAddStaff = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStaff.name || !newStaff.email) {
-      showToast('이름과 이메일은 필수 입력 사항입니다.', 'error');
-      return;
-    }
-    setManagers(prev => [...prev, { ...newStaff, activeCount: 0 }]);
-    setIsNewStaffModalOpen(false);
-    setNewStaff({ name: '', country: '네팔', email: '', phone: '' });
-    showToast(`신규 직원 ${newStaff.name}님이 등록되었습니다.`, 'success');
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
@@ -2523,117 +2601,199 @@ function App() {
               </div>
             )}
 
-            {/* 3. Staff Management View */}
+            {/* 3. Staff Management View (Matching Screenshot 100% with Team & Manager Supabase Integration) */}
             {currentView === 'staff' && (
-              <div className="view-container">
-                <div className="view-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 className="view-title" style={{ margin: 0 }}>직원 및 담당 업무 관리</h2>
-                    <button className="btn-filter" style={{ backgroundImage: 'none', backgroundColor: 'var(--accent-blue)' }} onClick={() => setIsNewStaffModalOpen(true)}>
-                      <PlusCircle size={16} />
-                      직원 신규등록
+              <div className="view-container" style={{ backgroundColor: '#ffffff', padding: '24px' }}>
+                
+                {/* 1. 팀 관리 Section */}
+                <div style={{ marginBottom: '40px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div>
+                      <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        팀 관리
+                        <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#64748b' }}>팀을 조회 및 생성합니다.</span>
+                      </h2>
+                    </div>
+                    <button
+                      onClick={handleCreateTeam}
+                      style={{ padding: '8px 18px', backgroundColor: '#0284c7', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                      팀 생성
                     </button>
                   </div>
-                  <div className="table-container">
-                    <table className="data-table" style={{ minWidth: '100%' }}>
+
+                  <div className="table-wrapper" style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+                    <table className="data-table" style={{ width: '100%', minWidth: '800px', textAlign: 'center', fontSize: '13px' }}>
                       <thead>
-                        <tr>
-                          <th>직원명</th>
-                          <th>담당 국가</th>
-                          <th>이메일 주소</th>
-                          <th>연락처</th>
-                          <th>담당 고객 수</th>
-                          <th>기능</th>
+                        <tr style={{ backgroundColor: '#0f172a', color: 'white' }}>
+                          <th style={{ padding: '10px' }}>번호</th>
+                          <th style={{ padding: '10px' }}>등록일</th>
+                          <th style={{ padding: '10px' }}>이름</th>
+                          <th style={{ padding: '10px' }}>팀원 수</th>
+                          <th style={{ padding: '10px' }}>팀삭제</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {managers.map((mgr) => {
-                          const customerCount = customers.filter(c => c.managerName === mgr.name).length;
-                          return (
-                            <tr key={mgr.name}>
-                              <td style={{ fontWeight: 600 }}>{mgr.name}</td>
-                              <td>
-                                <span className="badge-status badge-submit-resubmit">{mgr.country}</span>
-                              </td>
-                              <td>{mgr.email}</td>
-                              <td>{mgr.phone}</td>
-                              <td style={{ fontWeight: 'bold' }}>{customerCount} 명</td>
-                              <td>
-                                <button className="btn-save" style={{ backgroundColor: '#ef4444' }} onClick={() => {
-                                  if (window.confirm(`${mgr.name} 직원을 삭제하시겠습니까?`)) {
-                                    setManagers(prev => prev.filter(m => m.name !== mgr.name));
-                                    showToast(`${mgr.name} 직원이 명단에서 삭제되었습니다.`, 'info');
-                                  }
-                                }}>삭제</button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {dbTeams.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '24px', color: '#94a3b8' }}>등록된 팀 정보가 없습니다.</td>
+                          </tr>
+                        ) : (
+                          dbTeams.map((team) => {
+                            const memberCount = dbManagers.filter(m => m.teamId === team.id).length;
+                            return (
+                              <tr key={team.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td>{team.id}</td>
+                                <td>{formatKoreanDateTime(team.createdAt)}</td>
+                                <td style={{ fontWeight: 600 }}>{team.name}</td>
+                                <td>{memberCount}</td>
+                                <td>
+                                  <button
+                                    onClick={() => handleDeleteTeam(team.id, team.name)}
+                                    style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                  >
+                                    삭제
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                {isNewStaffModalOpen && (
-                  <div className="modal-backdrop" onClick={() => setIsNewStaffModalOpen(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h3>신규 직원 등록</h3>
-                        <button className="btn-close" onClick={() => setIsNewStaffModalOpen(false)}><X size={18} /></button>
-                      </div>
-                      <form onSubmit={handleAddStaff}>
-                        <div className="modal-body">
-                          <div className="form-group">
-                            <label>직원 이름</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder="예: 타리크"
-                              value={newStaff.name}
-                              onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
-                              required
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>담당 전담국가</label>
-                            <select
-                              className="form-control"
-                              value={newStaff.country}
-                              onChange={(e) => setNewStaff(prev => ({ ...prev, country: e.target.value }))}
-                            >
-                              {nationalities.map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label>이메일 주소</label>
-                            <input
-                              type="email"
-                              className="form-control"
-                              placeholder="staff@novel-tax.kr"
-                              value={newStaff.email}
-                              onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
-                              required
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>연락처</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder="010-XXXX-XXXX"
-                              value={newStaff.phone}
-                              onChange={(e) => setNewStaff(prev => ({ ...prev, phone: e.target.value }))}
-                            />
-                          </div>
-                        </div>
-                        <div className="modal-footer">
-                          <button type="button" className="btn-cancel" onClick={() => setIsNewStaffModalOpen(false)}>취소</button>
-                          <button type="submit" className="btn-submit">등록 완료</button>
-                        </div>
-                      </form>
-                    </div>
+                {/* 2. 매니저 관리 Section */}
+                <div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      매니저 관리
+                      <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#64748b' }}>매니저 회원가입 승인 및 매니저 정보를 관리합니다.</span>
+                    </h2>
                   </div>
-                )}
+
+                  <div className="table-wrapper" style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+                    <table className="data-table" style={{ width: '100%', minWidth: '900px', textAlign: 'center', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#0f172a', color: 'white' }}>
+                          <th style={{ padding: '10px', width: '80px' }}>번호</th>
+                          <th style={{ padding: '10px' }}>등록일</th>
+                          <th style={{ padding: '10px' }}>팀</th>
+                          <th style={{ padding: '10px' }}>이름</th>
+                          <th style={{ padding: '10px' }}>가입승인</th>
+                          <th style={{ padding: '10px' }}>매니저삭제</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dbManagers.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '24px', color: '#94a3b8' }}>등록된 매니저 정보가 없습니다.</td>
+                          </tr>
+                        ) : (
+                          (() => {
+                            const displayedMgrs = dbManagers.slice((managerPage - 1) * managerItemsPerPage, managerPage * managerItemsPerPage);
+                            
+                            return displayedMgrs.map((mgr, idx) => {
+                              const displayIndex = (managerPage - 1) * managerItemsPerPage + idx;
+                              return (
+                                <tr key={mgr.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td>{displayIndex}</td>
+                                  <td>{formatKoreanDateTime(mgr.createdAt)}</td>
+                                  <td>
+                                    <select
+                                      value={mgr.teamId || ''}
+                                      onChange={(e) => handleUpdateManagerTeam(mgr.id, Number(e.target.value))}
+                                      style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px', backgroundColor: '#fff' }}
+                                    >
+                                      {dbTeams.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td style={{ fontWeight: 600 }}>{mgr.name}</td>
+                                  <td>
+                                    {mgr.isConfirmed ? (
+                                      <span style={{ fontSize: '12px', color: '#64748b' }}>승인됨</span>
+                                    ) : (
+                                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                        <button
+                                          onClick={() => handleApproveManager(mgr.id, mgr.name)}
+                                          style={{ backgroundColor: '#0ea5e9', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                          승인
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteManager(mgr.id, mgr.name)}
+                                          style={{ backgroundColor: '#f97316', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                          삭제
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <button
+                                      onClick={() => handleDeleteManager(mgr.id, mgr.name)}
+                                      style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    >
+                                      삭제
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Manager Pagination Navigation Bar (< 이전 1 2 다음 >) */}
+                  {dbManagers.length > managerItemsPerPage && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+                      <button
+                        disabled={managerPage === 1}
+                        onClick={() => setManagerPage(prev => Math.max(prev - 1, 1))}
+                        style={{ border: 'none', background: 'none', color: managerPage === 1 ? '#cbd5e1' : '#64748b', cursor: managerPage === 1 ? 'not-allowed' : 'pointer', fontSize: '13px' }}
+                      >
+                        &lt; 이전
+                      </button>
+
+                      {Array.from({ length: Math.ceil(dbManagers.length / managerItemsPerPage) }).map((_, pIdx) => {
+                        const pageNum = pIdx + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setManagerPage(pageNum)}
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              backgroundColor: managerPage === pageNum ? '#0f172a' : 'transparent',
+                              color: managerPage === pageNum ? '#ffffff' : '#475569',
+                              fontWeight: managerPage === pageNum ? 'bold' : 'normal',
+                              cursor: 'pointer',
+                              fontSize: '13px'
+                            }}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        disabled={managerPage >= Math.ceil(dbManagers.length / managerItemsPerPage)}
+                        onClick={() => setManagerPage(prev => Math.min(prev + 1, Math.ceil(dbManagers.length / managerItemsPerPage)))}
+                        style={{ border: 'none', background: 'none', color: managerPage >= Math.ceil(dbManagers.length / managerItemsPerPage) ? '#cbd5e1' : '#64748b', cursor: managerPage >= Math.ceil(dbManagers.length / managerItemsPerPage) ? 'not-allowed' : 'pointer', fontSize: '13px' }}
+                      >
+                        다음 &gt;
+                      </button>
+                    </div>
+                  )}
+                </div>
+
               </div>
             )}
 

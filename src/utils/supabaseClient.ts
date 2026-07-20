@@ -213,3 +213,117 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
     return { success: false, error: err };
   }
 }
+
+/**
+ * Fetch all Team records from Supabase
+ */
+export async function fetchTeamsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('Team')
+      .select('*')
+      .order('id', { ascending: false });
+    if (error) {
+      console.warn('Fetch teams error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error('Fetch teams exception:', e);
+    return [];
+  }
+}
+
+/**
+ * Fetch all Manager records from Supabase
+ */
+export async function fetchManagersFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('Manager')
+      .select('*')
+      .order('createdAt', { ascending: false });
+    if (error) {
+      console.warn('Fetch managers error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error('Fetch managers exception:', e);
+    return [];
+  }
+}
+
+/**
+ * Create a new Team in Supabase
+ */
+export async function createTeamInSupabase(name: string) {
+  try {
+    const { data, error } = await supabase
+      .from('Team')
+      .insert([{ name, createdAt: new Date().toISOString() }])
+      .select()
+      .single();
+    if (error) throw error;
+    return { success: true, data };
+  } catch (e: any) {
+    console.error('Create team error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Delete a Team from Supabase
+ */
+export async function deleteTeamInSupabase(id: number) {
+  try {
+    const { error } = await supabase.from('Team').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  } catch (e: any) {
+    console.error('Delete team error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Update Manager's teamId in Supabase
+ */
+export async function updateManagerTeamInSupabase(managerId: string, teamId: number) {
+  try {
+    const { error } = await supabase.from('Manager').update({ teamId }).eq('id', managerId);
+    if (error) throw error;
+    return { success: true };
+  } catch (e: any) {
+    console.error('Update manager team error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Approve a Manager in Supabase
+ */
+export async function approveManagerInSupabase(managerId: string) {
+  try {
+    const { error } = await supabase.from('Manager').update({ isConfirmed: true }).eq('id', managerId);
+    if (error) throw error;
+    return { success: true };
+  } catch (e: any) {
+    console.error('Approve manager error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Delete a Manager from Supabase
+ */
+export async function deleteManagerInSupabase(managerId: string) {
+  try {
+    const { error } = await supabase.from('Manager').delete().eq('id', managerId);
+    if (error) throw error;
+    return { success: true };
+  } catch (e: any) {
+    console.error('Delete manager error:', e);
+    return { success: false, error: e.message };
+  }
+}
