@@ -7,6 +7,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export interface SupabaseClientRecord {
   id?: string;
+  createdAt?: string;
   name: string;
   regNum: string;
   country: string;
@@ -14,15 +15,35 @@ export interface SupabaseClientRecord {
   phone?: string;
   phoneCompany?: string;
   company?: string;
-  isMonthlyRent?: boolean;
-  bank?: string;
+  hireDate?: string;
+  visaExpiredDate?: string;
   bankAccount?: string;
+  bank?: string;
+  paybackProgress?: string;
   address?: string;
+  isMonthlyRent?: boolean;
+  taxReductionApplied?: string;
+  taxReductionAppliedDate?: string;
+  isAdditionalApply?: boolean;
+  additionalApplyDate?: string;
+  feeRate?: number;
+  feeMethod?: string;
+  clientRank?: string;
+  facebookName?: string;
+  facebookURL?: string;
   hometaxId?: string;
   hometaxPw?: string;
   managerId?: string;
-  isAdditionalApply?: boolean;
+  teamId?: number;
+  recordFileUploadedDate?: string;
+  taxReductionAppliedConfirmedDate?: string;
   updatedAt?: string;
+  rectificationClaimDate?: string;
+  serial?: number;
+  refund_performance?: number;
+  refund_performance_date?: string;
+  fee_performance?: number;
+  fee_performance_date?: string;
 }
 
 export interface SupabaseYearEndRecord {
@@ -33,16 +54,27 @@ export interface SupabaseYearEndRecord {
   companyRegNum?: string;
   regNum?: string;
   netSalary?: number;
+  netSalaryFromReceipt?: number;
   determineTax?: number;
+  determineTaxForCalculation?: number;
   smallBusinessYouthTaxCredit?: number;
-  calculatedEarnedIncomeTaxCredit?: number;
+  calculatedTaxCredit?: number;
+  changedEarnedIncomeTaxCredit?: number;
   changedDetermineTax?: number;
   changedLocalTax?: number;
+  changedTotalTax?: number;
+  changedSmallBusinessYouthTaxCredit?: number;
   totalTaxRefund?: number;
   localTaxRefund?: number;
+  totalTax?: number;
+  localTax?: number;
   fileURL?: string;
-  correctionClaimFileURL?: string;
+  correction_file_url?: string;
   isSmallBusiness?: boolean;
+  workPeriodStart?: string;
+  workPeriodEnd?: string;
+  employmentDate?: number;
+  createdAt?: string;
   updatedAt?: string;
 }
 
@@ -57,7 +89,7 @@ export async function fetchClientsFromSupabase() {
       .order('createdAt', { ascending: false });
 
     if (clientErr) {
-      console.warn('Supabase Client fetch error/notice:', clientErr.message);
+      console.warn('Supabase Client fetch notice:', clientErr.message);
       return null;
     }
 
@@ -70,7 +102,7 @@ export async function fetchClientsFromSupabase() {
       .select('*');
 
     if (yearErr) {
-      console.warn('Supabase YearEndData fetch error:', yearErr.message);
+      console.warn('Supabase YearEndData fetch notice:', yearErr.message);
     }
 
     return { clients, yearEnds: yearEnds || [] };
@@ -112,7 +144,7 @@ export async function uploadPdfToSupabase(file: File, path: string): Promise<str
 }
 
 /**
- * Save complete registration form & year-end records to Supabase with full column coverage
+ * Save complete registration form & year-end records to Supabase matching 100% of DB schema columns
  */
 export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: Record<string, File | null>) {
   try {
@@ -130,7 +162,7 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       }
     }
 
-    // 2. Insert or Update Client (Full mapping against DB schema)
+    // 2. Insert or Update Client (Microscopic 1:1 Schema Column Alignment)
     const clientPayload: Record<string, any> = {
       name: regForm.name ? regForm.name.toUpperCase() : '',
       regNum: regForm.foreignerNumber || '',
@@ -159,14 +191,14 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         .single();
 
       if (insertErr) {
-        console.warn('Insert Client error:', insertErr.message);
+        console.warn('Insert Client notice:', insertErr.message);
       } else if (newClient) {
         clientId = newClient.id;
       }
     }
 
     if (!clientId) {
-      console.warn('Client ID could not be established; skipping YearEndData saved');
+      console.warn('Client ID could not be established; skipping YearEndData save');
       return { success: false, clientId: null };
     }
 
@@ -186,13 +218,16 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         }
       }
 
+      // Microscopic 1:1 Schema Column Alignment for YearEndData
       const yearPayload: Record<string, any> = {
         clientId: clientId,
         year: parseInt(yr, 10),
         companyName: yrData.workPlace || '',
         netSalary: Number(yrData.totalSalary) || 0,
+        netSalaryFromReceipt: Number(yrData.totalSalary) || 0,
         determineTax: Number(yrData.originalDeterminedTax) || 0,
         smallBusinessYouthTaxCredit: Number(yrData.appliedTaxReduction) || 0,
+        calculatedTaxCredit: Number(yrData.appliedTaxReduction) || 0,
         totalTaxRefund: Number(yrData.expectedRefundNational) || 0,
         localTaxRefund: Number(yrData.expectedRefundLocal) || 0,
         changedDetermineTax: Number(yrData.recalcDeterminedTax) || 0,
