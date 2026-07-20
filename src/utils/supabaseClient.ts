@@ -12,11 +12,17 @@ export interface SupabaseClientRecord {
   country: string;
   visa: string;
   phone?: string;
+  phoneCompany?: string;
   company?: string;
   isMonthlyRent?: boolean;
+  bank?: string;
+  bankAccount?: string;
+  address?: string;
   hometaxId?: string;
   hometaxPw?: string;
   managerId?: string;
+  isAdditionalApply?: boolean;
+  updatedAt?: string;
 }
 
 export interface SupabaseYearEndRecord {
@@ -36,6 +42,8 @@ export interface SupabaseYearEndRecord {
   localTaxRefund?: number;
   fileURL?: string;
   correctionClaimFileURL?: string;
+  isSmallBusiness?: boolean;
+  updatedAt?: string;
 }
 
 /**
@@ -104,7 +112,7 @@ export async function uploadPdfToSupabase(file: File, path: string): Promise<str
 }
 
 /**
- * Save complete registration form & year-end records to Supabase
+ * Save complete registration form & year-end records to Supabase with full column coverage
  */
 export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: Record<string, File | null>) {
   try {
@@ -122,8 +130,8 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       }
     }
 
-    // 2. Insert or Update Client
-    const clientPayload = {
+    // 2. Insert or Update Client (Full mapping against DB schema)
+    const clientPayload: Record<string, any> = {
       name: regForm.name ? regForm.name.toUpperCase() : '',
       regNum: regForm.foreignerNumber || '',
       country: regForm.nationality || '인도네시아',
@@ -131,8 +139,13 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       company: regForm.years['2025']?.workPlace || regForm.years['2024']?.workPlace || '',
       isMonthlyRent: regForm.isMonthlyRent === '가',
       phone: regForm.phone || '',
+      phoneCompany: regForm.telecom || 'SKT',
+      bank: regForm.refundBankName || '',
+      bankAccount: regForm.refundBank || '',
+      address: regForm.residentAddress || regForm.residentRegisterAddress || '',
       hometaxId: regForm.hometaxId || '',
       hometaxPw: regForm.hometaxPw || '',
+      isAdditionalApply: Boolean(regForm.additionalApplyPerformance && regForm.additionalApplyPerformance !== '0'),
       updatedAt: new Date().toISOString()
     };
 
@@ -173,7 +186,7 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         }
       }
 
-      const yearPayload = {
+      const yearPayload: Record<string, any> = {
         clientId: clientId,
         year: parseInt(yr, 10),
         companyName: yrData.workPlace || '',
@@ -185,6 +198,7 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         changedDetermineTax: Number(yrData.recalcDeterminedTax) || 0,
         changedLocalTax: Number(yrData.recalcLocalTax) || 0,
         regNum: regForm.foreignerNumber || '',
+        isSmallBusiness: yrData.isReductionEligible === '여' || yrData.appliedTaxReduction > 0,
         updatedAt: new Date().toISOString(),
         ...(fileURL ? { fileURL } : {})
       };
