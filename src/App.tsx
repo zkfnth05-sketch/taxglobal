@@ -304,6 +304,54 @@ function App() {
   // Dynamic Years for Settlement
   const [targetYears, setTargetYears] = useState<string[]>(['2021', '2022', '2023', '2024', '2025']);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number>(22);
+
+  const handleResetAll = () => {
+    setRegForm({
+      name: '',
+      foreignerNumber: '',
+      nationality: '네팔',
+      telecom: 'SKT',
+      phone: '',
+      visaType: 'E10',
+      residentAddress: '',
+      visaExpiry: '',
+      isMonthlyRent: '부',
+      refundBankName: 'KB국민은행',
+      refundBank: '',
+      refundStatus: '대기',
+      residentRegisterAddress: '',
+      deductionSubmissionStatus: '◎제출이력없음',
+      deductionApplyPeriod: '',
+      deductionSentDate: '',
+      claimRequestDate: '',
+      claimCompleteDate: '',
+      additionalApplyPerformance: '',
+      feePaymentStatus: '후불 22%',
+
+      years: {
+        '2021': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2022': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2023': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2024': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2025': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      },
+
+      snsName: '',
+      snsAddress: '',
+      hometaxId: '',
+      hometaxPw: '',
+      customerGrade: '',
+      greenContractDate: '',
+      consultMemo: '',
+      refundPerformance: '0',
+      refundPerformanceDate: '',
+      feeReceivedPerformance: '0',
+      feeReceivedDate: ''
+    });
+    setTargetYears(['2021', '2022', '2023', '2024', '2025']);
+    showToast('고객 등록 정보 및 정산 데이터가 전체 초기화되었습니다.', 'info');
+  };
+
   const handleFeeRateChange = (rate: number) => {
     setSelectedFeeRate(rate);
     setRegForm(prev => {
@@ -1136,15 +1184,10 @@ function App() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-cancel" style={{ padding: '8px 16px', fontSize: '14px' }} onClick={() => setCurrentView('customer')}>목록</button>
-                    <label className="btn-submit" style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#0f766e', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0 }}>
-                      <FileSpreadsheet size={16} />
-                      PDF 일괄 분석
-                      <input type="file" accept=".pdf" multiple style={{ display: 'none' }} onChange={handleBulkPdfUpload} />
-                    </label>
-                    <button className="btn-cancel" style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#64748b', color: 'white' }} onClick={() => setRegForm(prev => ({ ...prev, name: '', foreignerNumber: '' }))}>전체 초기화</button>
-                    <button className="btn-submit" style={{ padding: '8px 20px', fontSize: '14px', backgroundColor: '#2563eb' }} onClick={handleSaveRegistration}>전체저장</button>
-                    <button className="btn-cancel" style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#ef4444', color: 'white' }} onClick={() => setCurrentView('customer')}>삭제</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold' }} onClick={handleResetAll}>전체 초기화</button>
+                    <button className="btn-submit" style={{ padding: '6px 16px', fontSize: '13px', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold' }} onClick={handleSaveRegistration}>신규저장</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ef4444', color: 'white', fontWeight: 'bold' }} onClick={() => setCurrentView('customer')}>삭제</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold' }} onClick={() => setCurrentView('customer')}>목록</button>
                   </div>
                 </div>
 
