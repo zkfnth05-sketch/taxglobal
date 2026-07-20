@@ -509,7 +509,11 @@ function App() {
     dependentsCount: 0,
     seniorCount: 0,
     disabledCount: 0,
-    childCount: 0
+    childCount: 0,
+    familyDocUrl: '',
+    remittanceDocUrl: '',
+    familyDocFile: null as File | null,
+    remittanceDocFile: null as File | null
   });
 
   // Dynamic Years for Settlement
@@ -562,7 +566,11 @@ function App() {
       dependentsCount: 0,
       seniorCount: 0,
       disabledCount: 0,
-      childCount: 0
+      childCount: 0,
+      familyDocUrl: '',
+      remittanceDocUrl: '',
+      familyDocFile: null,
+      remittanceDocFile: null
     });
     setTargetYears(['2021', '2022', '2023', '2024', '2025']);
     showToast('고객 등록 정보 및 정산 데이터가 전체 초기화되었습니다.', 'info');
@@ -1113,6 +1121,10 @@ function App() {
         seniorCount: Number(clientDetails?.seniorCount) || 0,
         disabledCount: Number(clientDetails?.disabledCount) || 0,
         childCount: Number(clientDetails?.childCount) || 0,
+        familyDocUrl: clientDetails?.familyDocUrl || '',
+        remittanceDocUrl: clientDetails?.remittanceDocUrl || '',
+        familyDocFile: null,
+        remittanceDocFile: null,
         years: yearsObj
       }));
 
@@ -1226,6 +1238,8 @@ function App() {
       '2023': regForm.years['2023']?.pdfFile || null,
       '2024': regForm.years['2024']?.pdfFile || null,
       '2025': regForm.years['2025']?.pdfFile || null,
+      'familyDoc': regForm.familyDocFile || null,
+      'remittanceDoc': regForm.remittanceDocFile || null
     };
 
     showToast('Supabase 클라우드 저장소에 고객 정보 및 PDF 파일 동기화를 진행 중입니다...', 'info');
@@ -1900,6 +1914,59 @@ function App() {
                           style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', fontWeight: 'bold', cursor: 'pointer' }}
                         >+</button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* File Upload Row for Family Proof Documents */}
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1', display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    {/* 1. 가족관계증명서 */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}>📁 가족관계증명서:</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.png,.jpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setRegForm(prev => ({ ...prev, familyDocFile: file }));
+                          if (file) showToast(`가족관계증명서 (${file.name}) 파일이 첨부되었습니다.`, 'info');
+                        }}
+                        style={{ fontSize: '12px' }}
+                      />
+                      {regForm.familyDocUrl && (
+                        <a
+                          href={regForm.familyDocUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold', textDecoration: 'underline' }}
+                        >
+                          [저장된 파일 보기]
+                        </a>
+                      )}
+                    </div>
+
+                    {/* 2. 외화 송금영수증 */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}>💸 외화 송금영수증:</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.png,.jpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setRegForm(prev => ({ ...prev, remittanceDocFile: file }));
+                          if (file) showToast(`송금영수증 (${file.name}) 파일이 첨부되었습니다.`, 'info');
+                        }}
+                        style={{ fontSize: '12px' }}
+                      />
+                      {regForm.remittanceDocUrl && (
+                        <a
+                          href={regForm.remittanceDocUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold', textDecoration: 'underline' }}
+                        >
+                          [저장된 파일 보기]
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>

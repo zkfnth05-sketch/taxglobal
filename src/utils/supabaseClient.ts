@@ -135,6 +135,16 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       updatedAt: new Date().toISOString()
     };
 
+    if (pdfFileObjects['familyDoc']) {
+      const familyUrl = await uploadPdfToSupabase(pdfFileObjects['familyDoc'], `family_docs/${regForm.foreignerNumber || 'client'}_family_${Date.now()}.pdf`);
+      if (familyUrl) clientPayload.familyDocUrl = familyUrl;
+    }
+
+    if (pdfFileObjects['remittanceDoc']) {
+      const remitUrl = await uploadPdfToSupabase(pdfFileObjects['remittanceDoc'], `remittance_docs/${regForm.foreignerNumber || 'client'}_remittance_${Date.now()}.pdf`);
+      if (remitUrl) clientPayload.remittanceDocUrl = remitUrl;
+    }
+
     if (clientId) {
       await supabase.from('Client').update(clientPayload).eq('id', clientId);
     } else {
