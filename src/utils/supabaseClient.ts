@@ -327,3 +327,39 @@ export async function deleteManagerInSupabase(managerId: string) {
     return { success: false, error: e.message };
   }
 }
+
+/**
+ * Create a new Manager record in Supabase with extended fields
+ */
+export async function createManagerInSupabase(payload: {
+  name: string;
+  teamId: number;
+  phone?: string;
+  email?: string;
+  address?: string;
+  facebookMessenger?: string;
+}) {
+  try {
+    const { data, error } = await supabase
+      .from('Manager')
+      .insert([{
+        name: payload.name,
+        teamId: payload.teamId,
+        phone: payload.phone || '',
+        email: payload.email || '',
+        address: payload.address || '',
+        facebookMessenger: payload.facebookMessenger || '',
+        isAdmin: false,
+        isConfirmed: true,
+        createdAt: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (e: any) {
+    console.error('Create manager error:', e);
+    return { success: false, error: e.message };
+  }
+}

@@ -26,7 +26,8 @@ import {
   deleteTeamInSupabase,
   updateManagerTeamInSupabase,
   approveManagerInSupabase,
-  deleteManagerInSupabase
+  deleteManagerInSupabase,
+  createManagerInSupabase
 } from './utils/supabaseClient';
 
 
@@ -266,6 +267,47 @@ function App() {
   const [dbManagers, setDbManagers] = useState<any[]>([]);
   const [managerPage, setManagerPage] = useState<number>(1);
   const managerItemsPerPage = 10;
+
+  const [isAddManagerModalOpen, setIsAddManagerModalOpen] = useState<boolean>(false);
+  const [newManagerData, setNewManagerData] = useState({
+    name: '',
+    teamId: '',
+    phone: '',
+    email: '',
+    address: '',
+    facebookMessenger: ''
+  });
+
+  const handleSaveNewManager = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newManagerData.name.trim()) {
+      showToast('매니저 이름을 입력해 주세요.', 'error');
+      return;
+    }
+    if (!newManagerData.teamId) {
+      showToast('소속 팀을 선택해 주세요.', 'error');
+      return;
+    }
+
+    showToast('신규 매니저를 등록하는 중입니다...', 'info');
+    const res = await createManagerInSupabase({
+      name: newManagerData.name.trim(),
+      teamId: Number(newManagerData.teamId),
+      phone: newManagerData.phone,
+      email: newManagerData.email,
+      address: newManagerData.address,
+      facebookMessenger: newManagerData.facebookMessenger
+    });
+
+    if (res.success) {
+      showToast(`${newManagerData.name} 매니저가 성공적으로 등록되었습니다.`, 'success');
+      setIsAddManagerModalOpen(false);
+      setNewManagerData({ name: '', teamId: '', phone: '', email: '', address: '', facebookMessenger: '' });
+      loadStaffData();
+    } else {
+      showToast(`매니저 등록 실패: ${res.error}`, 'error');
+    }
+  };
 
   const loadStaffData = async () => {
     const teams = await fetchTeamsFromSupabase();
@@ -2666,11 +2708,20 @@ function App() {
 
                 {/* 2. 매니저 관리 Section */}
                 <div>
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
                       매니저 관리
                       <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#64748b' }}>매니저 회원가입 승인 및 매니저 정보를 관리합니다.</span>
                     </h2>
+                    <button
+                      onClick={() => {
+                        setNewManagerData({ name: '', teamId: dbTeams[0]?.id ? String(dbTeams[0].id) : '', phone: '', email: '', address: '', facebookMessenger: '' });
+                        setIsAddManagerModalOpen(true);
+                      }}
+                      style={{ padding: '8px 18px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                      매니저 생성
+                    </button>
                   </div>
 
                   <div className="table-wrapper" style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
@@ -2793,6 +2844,103 @@ function App() {
                     </div>
                   )}
                 </div>
+
+                {/* Modal for Adding New Manager with Extended Details */}
+                {isAddManagerModalOpen && (
+                  <div className="modal-backdrop" onClick={() => setIsAddManagerModalOpen(false)}>
+                    <div className="modal-content" style={{ maxWidth: '520px', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
+                      <div className="modal-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>신규 매니저 직접 등록</h3>
+                        <button className="btn-close" style={{ border: 'none', background: 'none', cursor: 'pointer' }} onClick={() => setIsAddManagerModalOpen(false)}><X size={18} /></button>
+                      </div>
+                      <form onSubmit={handleSaveNewManager}>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>매니저 성명 <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="예: Boram, 홍길동"
+                              value={newManagerData.name}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, name: e.target.value }))}
+                              required
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>소속 팀 <span style={{ color: '#ef4444' }}>*</span></label>
+                            <select
+                              className="form-control"
+                              value={newManagerData.teamId}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, teamId: e.target.value }))}
+                              required
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            >
+                              <option value="">-- 팀 선택 --</option>
+                              {dbTeams.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>연락처 (핸드폰번호)</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="010-XXXX-XXXX"
+                              value={newManagerData.phone}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, phone: e.target.value }))}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>이메일 주소</label>
+                            <input
+                              type="email"
+                              className="form-control"
+                              placeholder="manager@novel-tax.kr"
+                              value={newManagerData.email}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, email: e.target.value }))}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>주소 (거주지)</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="주소 입력"
+                              value={newManagerData.address}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, address: e.target.value }))}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>페이스북 메신저 / SNS ID</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Facebook ID 또는 메신저 링크"
+                              value={newManagerData.facebookMessenger}
+                              onChange={(e) => setNewManagerData(prev => ({ ...prev, facebookMessenger: e.target.value }))}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button type="button" className="btn-cancel" style={{ padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: 'pointer' }} onClick={() => setIsAddManagerModalOpen(false)}>취소</button>
+                          <button type="submit" className="btn-submit" style={{ padding: '8px 18px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>등록 완료</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
 
               </div>
             )}
