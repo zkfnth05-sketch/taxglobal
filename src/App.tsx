@@ -273,11 +273,11 @@ function App() {
 
     // Yearly calculations: 2021 ~ 2025
     years: {
-      '2021': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-      '2022': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-      '2023': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-      '2024': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-      '2025': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      '2021': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      '2022': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      '2023': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      '2024': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+      '2025': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
     } as Record<string, any>,
 
     // Customer Consultation Information
@@ -329,11 +329,11 @@ function App() {
       feePaymentStatus: '후불 22%',
 
       years: {
-        '2021': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-        '2022': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-        '2023': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-        '2024': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
-        '2025': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '0', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2021': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2022': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2023': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2024': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
+        '2025': { active: false, workPeriod: '', workPlace: '', businessNumber: '', birthDate: '', salaryTotal: '0', taxBase: '0', childReduction: '0', childDeduction: '0', decisionTax: '0', localTax: '0', taxRefundTotal: '0', childReductionApply: '90%', childReductionApplyAmt: '0', childDeductionApplyAmt: '0', decisionTaxApplyAmt: '0', localTaxApplyAmt: '0', decisionTaxRefundAmt: '0', refundExpectNational: '0', refundExpectLocal: '0', courtFee: '0', expectedFeeAmt: '0' },
       },
 
       snsName: '',
@@ -432,6 +432,69 @@ function App() {
 
 
 
+  const handleDownloadPdf = async (yr: string) => {
+    const yearData = regForm.years[yr];
+    
+    // 1. Memory uploaded file
+    if (yearData?.pdfFile) {
+      const url = URL.createObjectURL(yearData.pdfFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = yearData.pdfFile.name || `${yr}년도_원천징수영수증.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast(`[${yr}년도] PDF 원본 파일 다운로드를 완료했습니다.`, 'success');
+      return;
+    }
+
+    // 2. Try fetching from public/${yr}.pdf
+    try {
+      const pdfUrl = `/${yr}.pdf`;
+      const response = await fetch(pdfUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${yr}년도_원천징수영수증.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`[${yr}년도] PDF 원본 파일 다운로드를 완료했습니다.`, 'success');
+        return;
+      }
+    } catch (e) {
+      console.warn('PDF fetch error:', e);
+    }
+
+    // 3. Fallback text file
+    const textContent = `[노벨세무회계 연구] ${yr}년도 근로소득 원천징수영수증 정산 데이터\n\n` +
+      `신청인: ${regForm.name || '-'}\n` +
+      `외국인등록번호: ${regForm.foreignerNumber || '-'}\n` +
+      `근무처: ${yearData?.workPlace || '-'}\n` +
+      `근무기간: ${yearData?.workPeriod || '-'}\n` +
+      `총급여액: ${Number(yearData?.salaryTotal || 0).toLocaleString()}원\n` +
+      `산출세액: ${Number(yearData?.taxBase || 0).toLocaleString()}원\n` +
+      `기존 결정세액(소득세): ${Number(yearData?.decisionTax || 0).toLocaleString()}원\n` +
+      `기존 결정세액(지방세): ${Number(yearData?.localTax || 0).toLocaleString()}원\n` +
+      `청년세액감면 적용액: ${Number(yearData?.childReductionApplyAmt || 0).toLocaleString()}원\n` +
+      `예상 환급금 합계: ${Number(yearData?.courtFee || 0).toLocaleString()}원\n`;
+
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${yr}년도_원천징수영수증_정산서.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(`[${yr}년도] 정산서 다운로드를 완료했습니다.`, 'success');
+  };
+
   const handleSingleYearPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, fallbackYr?: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -477,6 +540,8 @@ function App() {
         const updatedYears = { ...prev.years };
         updatedYears[yr] = {
           active: true,
+          isFileUploaded: true,
+          pdfFile: file,
           workPeriod: parsed.workPeriod || updatedYears[yr]?.workPeriod || '',
           workPlace: parsed.workPlace || updatedYears[yr]?.workPlace || '',
           businessNumber: parsed.businessNumber || updatedYears[yr]?.businessNumber || '',
@@ -489,7 +554,7 @@ function App() {
           localTax: parsed.determinedLocalTax || '0',
           taxRefundTotal: String(originalDecisionTax + originalLocalTax),
           
-          childReductionApply: '90%',
+          childReductionApply: reductionAmt > 0 ? 'Y' : 'N',
           childReductionApplyAmt: String(reductionAmt),
           childDeductionApplyAmt: String(changedChildDeduction),
           decisionTaxApplyAmt: String(changedDecisionTax),
@@ -571,6 +636,8 @@ function App() {
           const updatedYears = { ...prev.years };
           updatedYears[yr] = {
             active: true,
+            isFileUploaded: true,
+            pdfFile: file,
             workPeriod: parsed.workPeriod || '',
             workPlace: parsed.workPlace || '',
             businessNumber: parsed.businessNumber || '',
@@ -583,7 +650,7 @@ function App() {
             localTax: parsed.determinedLocalTax || '0',
             taxRefundTotal: String(originalDecisionTax + originalLocalTax),
             
-            childReductionApply: '90%',
+            childReductionApply: reductionAmt > 0 ? 'Y' : 'N',
             childReductionApplyAmt: String(reductionAmt),
             childDeductionApplyAmt: String(changedChildDeduction),
             decisionTaxApplyAmt: String(changedDecisionTax),
@@ -932,7 +999,7 @@ function App() {
       )}
 
       {isLoggedIn && (
-        <div className="app-container">
+        <div className="app-container notranslate" translate="no">
           {/* Sidebar */}
           <aside className="sidebar">
             <div className="sidebar-logo">
@@ -1177,17 +1244,28 @@ function App() {
                   <div>
                     <h1 style={{ fontSize: '22px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', margin: 0 }}>
                       고객등록 관리
-                      <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#ea580c' }}>고객정보 및 근로소득 원천징수영수증을 등록, 관리하고 환급 가능한 세액을 계산합니다.</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#ef4444' }}>고객정보 및 근로소득 원천징수영수증을 등록, 관리하고 환급 가능한 세액을 계산합니다.</span>
                     </h1>
                     <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
-                      관리자 관리자 | 최종업데이트 : {new Date().getFullYear()}년 {new Date().getMonth() + 1}월 {new Date().getDate()}일 오후 5:52
+                      관리자 관리자 | 최종업데이트 : {(() => {
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = now.getMonth() + 1;
+                        const date = now.getDate();
+                        let hours = now.getHours();
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const ampm = hours >= 12 ? '오후' : '오전';
+                        hours = hours % 12;
+                        hours = hours ? hours : 12;
+                        return `${year}년 ${month}월 ${date}일 ${ampm} ${hours}:${minutes}`;
+                      })()}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold' }} onClick={handleResetAll}>전체 초기화</button>
-                    <button className="btn-submit" style={{ padding: '6px 16px', fontSize: '13px', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold' }} onClick={handleSaveRegistration}>신규저장</button>
-                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ef4444', color: 'white', fontWeight: 'bold' }} onClick={() => setCurrentView('customer')}>삭제</button>
-                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold' }} onClick={() => setCurrentView('customer')}>목록</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={handleResetAll}>전체 초기화</button>
+                    <button className="btn-submit" style={{ padding: '6px 16px', fontSize: '13px', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={handleSaveRegistration}>신규저장</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ef4444', color: 'white', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setCurrentView('customer')}>삭제</button>
+                    <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setCurrentView('customer')}>목록</button>
                   </div>
                 </div>
 
@@ -1202,7 +1280,11 @@ function App() {
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '8%' }}>국적</td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '13%' }}>전화번호</td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '7%' }}>비자 종류</td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '9%' }}>취업일</td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '9%' }}>
+                          {(regForm.years['2023']?.workPlace || regForm.years['2024']?.workPlace || regForm.years['2022']?.workPlace) 
+                            ? `${regForm.years['2023']?.workPlace || regForm.years['2024']?.workPlace || regForm.years['2022']?.workPlace} 취업일` 
+                            : '취업일'}
+                        </td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '9%' }}>비자만료일</td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '7%' }}>월세여부</td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '6px', width: '18%' }}>환급금 입금계좌</td>
@@ -1445,13 +1527,33 @@ function App() {
                         {targetYears.map(yr => (
                           <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '4px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
-                              <input 
-                                type="file" 
-                                accept=".pdf" 
-                                multiple
-                                style={{ fontSize: '12px', width: '150px' }} 
-                                onChange={(e) => handleSingleYearPdfUpload(e, yr)} 
-                              />
+                              {regForm.years[yr]?.isFileUploaded ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadPdf(yr)}
+                                  style={{
+                                    backgroundColor: '#15803d',
+                                    color: '#ffffff',
+                                    fontWeight: 'bold',
+                                    fontSize: '11px',
+                                    padding: '4px 14px',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                  }}
+                                >
+                                  다운로드
+                                </button>
+                              ) : (
+                                <input 
+                                  type="file" 
+                                  accept=".pdf" 
+                                  multiple
+                                  style={{ fontSize: '12px', width: '150px' }} 
+                                  onChange={(e) => handleSingleYearPdfUpload(e, yr)} 
+                                />
+                              )}
                             </div>
                           </td>
                         ))}
@@ -1726,24 +1828,72 @@ function App() {
                       </tr>
 
                       {/* 8. 중소기업 청년 세액감면 적용 (Layout matches user's screenshot) */}
-                      {/* Row 1: 중소기업 청년 세액감면 적용 (header spans 2 columns horizontally) */}
+                      {/* Row 1: 중소기업 청년 세액감면 적용 */}
                       <tr>
                         <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', textAlign: 'center', backgroundColor: '#e0f2fe', color: '#0369a1' }}>중소기업 청년 세액감면 적용</td>
-                        {targetYears.map(yr => (
-                          <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '2px' }}>
-                            <input
-                              type="text"
-                              className="form-control"
-                              style={{ height: '28px', fontSize: '12px', textAlign: 'center' }}
-                              value={regForm.years[yr]?.active ? regForm.years[yr]?.childReductionApply || '90%' : ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setRegForm(prev => ({ ...prev, years: { ...prev.years, [yr]: { ...prev.years[yr], childReductionApply: val, active: true } } }));
+                        {targetYears.map(yr => {
+                          const yearData = regForm.years[yr];
+                          const isFileUploaded = Boolean(yearData?.isFileUploaded);
+                          const applyVal = yearData?.childReductionApply;
+                          const isApplied = Boolean(
+                            applyVal !== 'N' && 
+                            applyVal !== '0' && 
+                            (applyVal === 'Y' || applyVal === '90%' || Number(yearData?.childReductionApplyAmt) > 0)
+                          );
+
+                          return (
+                            <td 
+                              key={yr} 
+                              style={{ border: '1px solid #cbd5e1', padding: isFileUploaded ? '6px' : '2px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                              onClick={() => {
+                                if (isFileUploaded) {
+                                  setRegForm(prev => ({
+                                    ...prev,
+                                    years: {
+                                      ...prev.years,
+                                      [yr]: {
+                                        ...prev.years[yr],
+                                        childReductionApply: isApplied ? 'N' : 'Y'
+                                      }
+                                    }
+                                  }));
+                                }
                               }}
-                              placeholder="-"
-                            />
-                          </td>
-                        ))}
+                            >
+                              {!isFileUploaded ? (
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  style={{ height: '28px', fontSize: '12px', textAlign: 'center' }}
+                                  value={(!yearData?.childReductionApply || yearData?.childReductionApply === '0') ? '90%' : yearData?.childReductionApply}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setRegForm(prev => ({
+                                      ...prev,
+                                      years: {
+                                        ...prev.years,
+                                        [yr]: {
+                                          ...prev.years[yr],
+                                          childReductionApply: val
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  placeholder="90%"
+                                />
+                              ) : isApplied ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="11" cy="11" r="10" fill="#22c55e"/>
+                                    <path d="M7 11.2L9.8 14L15 8.2" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </div>
+                              ) : (
+                                <span style={{ color: '#64748b', fontWeight: 'normal' }}>-</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         <td style={{ border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9' }}></td>
                       </tr>
 
@@ -2016,61 +2166,18 @@ function App() {
                         </td>
                       </tr>
 
-                      {/* 지급명세서 PDF 자동분석 row */}
-                      <tr style={{ backgroundColor: '#e2e8f0' }}>
-                        <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', textAlign: 'center', color: '#0f766e' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                            <span>지급명세서 PDF 자동분석</span>
-                            <label style={{
-                              padding: '3px 8px',
-                              fontSize: '11px',
-                              backgroundColor: '#0284c7',
-                              color: 'white',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontWeight: 'bold',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}>
-                              <FileSpreadsheet size={12} />
-                              📁 PDF 연도 자동분석/일괄업로드
-                              <input 
-                                type="file" 
-                                accept=".pdf" 
-                                multiple
-                                style={{ display: 'none' }} 
-                                onChange={handleBulkPdfUpload} 
-                              />
-                            </label>
-                          </div>
+                      {/* 세액재정정 경정 청구서 파일 row */}
+                      <tr style={{ backgroundColor: '#fef08a' }}>
+                        <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', textAlign: 'center', backgroundColor: '#fef08a', color: '#854d0e' }}>
+                          세액재정정 경정 청구서 파일
                         </td>
                         {targetYears.map(yr => (
                           <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '4px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                              <label style={{
-                                padding: '4px 8px',
-                                fontSize: '11px',
-                                backgroundColor: '#0f766e',
-                                color: 'white',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontWeight: 'bold',
-                                margin: 0
-                              }}>
-                                <FileSpreadsheet size={12} />
-                                PDF 분석
-                                <input 
-                                  type="file" 
-                                  accept=".pdf" 
-                                  style={{ display: 'none' }} 
-                                  onChange={(e) => handleSingleYearPdfUpload(e, yr)} 
-                                />
-                              </label>
+                              <input 
+                                type="file" 
+                                style={{ fontSize: '12px', width: '150px' }} 
+                              />
                             </div>
                           </td>
                         ))}
