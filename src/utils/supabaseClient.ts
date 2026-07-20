@@ -113,6 +113,7 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       name: regForm.name ? regForm.name.toUpperCase() : '',
       regNum: regForm.foreignerNumber || '',
       country: regForm.nationality || '인도네시아',
+      managerId: regForm.managerName || 'Boram',
       visa: regForm.visaType || 'E9',
       company: regForm.years['2025']?.workPlace || regForm.years['2024']?.workPlace || '',
       isMonthlyTenant: regForm.isMonthlyRent === '가',

@@ -324,7 +324,8 @@ function App() {
     // Basic Details
     name: '',
     foreignerNumber: '',
-    nationality: '네팔',
+    nationality: '미얀마',
+    managerName: 'Boram',
     telecom: 'SKT',
     phone: '',
     visaType: 'E10',
@@ -381,7 +382,8 @@ function App() {
     setRegForm({
       name: '',
       foreignerNumber: '',
-      nationality: '네팔',
+      nationality: '미얀마',
+      managerName: 'Boram',
       telecom: 'SKT',
       phone: '',
       visaType: 'E10',
@@ -947,6 +949,7 @@ function App() {
         name: clientDetails?.name || customer.name,
         foreignerNumber: clientDetails?.regNum || customer.birthDate,
         nationality: clientDetails?.country || customer.nationality,
+        managerName: customer.managerName || 'Boram',
         phone: clientDetails?.phone || '',
         telecom: clientDetails?.phoneComp || clientDetails?.phoneCompany || 'KT',
         visaType: clientDetails?.visa || customer.visa,
@@ -1464,19 +1467,25 @@ function App() {
                       고객등록 관리
                       <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#ef4444' }}>고객정보 및 근로소득 원천징수영수증을 등록, 관리하고 환급 가능한 세액을 계산합니다.</span>
                     </h1>
-                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
-                      관리자 관리자 | 최종업데이트 : {(() => {
-                        const now = new Date();
-                        const year = now.getFullYear();
-                        const month = now.getMonth() + 1;
-                        const date = now.getDate();
-                        let hours = now.getHours();
-                        const minutes = String(now.getMinutes()).padStart(2, '0');
-                        const ampm = hours >= 12 ? '오후' : '오전';
-                        hours = hours % 12;
-                        hours = hours ? hours : 12;
-                        return `${year}년 ${month}월 ${date}일 ${ampm} ${hours}:${minutes}`;
-                      })()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                      <span style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '3px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
+                        {regForm.nationality || '미얀마'}팀 {regForm.managerName || 'Boram'}
+                      </span>
+                      <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>|</span>
+                      <span style={{ backgroundColor: '#1e293b', color: '#ffffff', padding: '3px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
+                        최종업데이트 : {(() => {
+                          const now = new Date();
+                          const year = now.getFullYear();
+                          const month = now.getMonth() + 1;
+                          const date = now.getDate();
+                          let hours = now.getHours();
+                          const minutes = String(now.getMinutes()).padStart(2, '0');
+                          const ampm = hours >= 12 ? '오후' : '오전';
+                          hours = hours % 12;
+                          hours = hours ? hours : 12;
+                          return `${year}년 ${month}월 ${date}일 ${ampm} ${hours}:${minutes}`;
+                        })()}
+                      </span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
