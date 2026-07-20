@@ -5,81 +5,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export interface SupabaseClientRecord {
-  id?: string;
-  createdAt?: string;
-  name: string;
-  regNum: string;
-  country: string;
-  visa: string;
-  phone?: string;
-  phoneCompany?: string;
-  company?: string;
-  hireDate?: string;
-  visaExpiredDate?: string;
-  bankAccount?: string;
-  bank?: string;
-  paybackProgress?: string;
-  address?: string;
-  isMonthlyRent?: boolean;
-  taxReductionApplied?: string;
-  taxReductionAppliedDate?: string;
-  isAdditionalApply?: boolean;
-  additionalApplyDate?: string;
-  feeRate?: number;
-  feeMethod?: string;
-  clientRank?: string;
-  facebookName?: string;
-  facebookURL?: string;
-  hometaxId?: string;
-  hometaxPw?: string;
-  managerId?: string;
-  teamId?: number;
-  recordFileUploadedDate?: string;
-  taxReductionAppliedConfirmedDate?: string;
-  updatedAt?: string;
-  rectificationClaimDate?: string;
-  serial?: number;
-  refund_performance?: number;
-  refund_performance_date?: string;
-  fee_performance?: number;
-  fee_performance_date?: string;
-}
-
-export interface SupabaseYearEndRecord {
-  id?: string;
-  clientId: string;
-  year: number;
-  companyName?: string;
-  companyRegNum?: string;
-  regNum?: string;
-  netSalary?: number;
-  netSalaryFromReceipt?: number;
-  determineTax?: number;
-  determineTaxForCalculation?: number;
-  smallBusinessYouthTaxCredit?: number;
-  calculatedTaxCredit?: number;
-  changedEarnedIncomeTaxCredit?: number;
-  changedDetermineTax?: number;
-  changedLocalTax?: number;
-  changedTotalTax?: number;
-  changedSmallBusinessYouthTaxCredit?: number;
-  totalTaxRefund?: number;
-  localTaxRefund?: number;
-  totalTax?: number;
-  localTax?: number;
-  fileURL?: string;
-  correction_file_url?: string;
-  isSmallBusiness?: boolean;
-  workPeriodStart?: string;
-  workPeriodEnd?: string;
-  employmentDate?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 /**
- * Fetch all clients and their year-end tax records from Supabase
+ * Fetch all clients and their year-end tax records directly from Supabase
  */
 export async function fetchClientsFromSupabase() {
   try {
@@ -113,25 +40,26 @@ export async function fetchClientsFromSupabase() {
 }
 
 /**
- * Upload a PDF file to Supabase Storage and return its public URL
+ * Upload a PDF file to Supabase Storage ('novel_pdf' bucket) and return its public URL
  */
 export async function uploadPdfToSupabase(file: File, path: string): Promise<string | null> {
   try {
-    const bucketName = 'documents';
+    const bucketName = 'novel_pdf';
     const { error } = await supabase.storage
       .from(bucketName)
       .upload(path, file, { upsert: true });
 
     if (error) {
-      console.warn(`Storage upload warning for ${path}:`, error.message);
-      const { error: fbErr } = await supabase.storage
-        .from('files')
+      console.warn(`Storage upload warning for bucket [${bucketName}]:`, error.message);
+      // Fallback to documents bucket
+      const { error: docErr } = await supabase.storage
+        .from('documents')
         .upload(path, file, { upsert: true });
-      if (fbErr) {
-        console.warn('Fallback bucket upload warning:', fbErr.message);
+      if (docErr) {
+        console.warn('Fallback bucket upload warning:', docErr.message);
         return null;
       }
-      const { data: publicUrlData } = supabase.storage.from('files').getPublicUrl(path);
+      const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(path);
       return publicUrlData.publicUrl;
     }
 
@@ -144,7 +72,7 @@ export async function uploadPdfToSupabase(file: File, path: string): Promise<str
 }
 
 /**
- * Save complete registration form & year-end records to Supabase matching 100% of DB schema columns
+ * Save complete registration form & year-end records to Supabase with exact 1:1 schema alignment
  */
 export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: Record<string, File | null>) {
   try {
@@ -162,21 +90,24 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       }
     }
 
-    // 2. Insert or Update Client (Microscopic 1:1 Schema Column Alignment)
+    // 2. Insert or Update Client (Supporting exact DB column names)
     const clientPayload: Record<string, any> = {
       name: regForm.name ? regForm.name.toUpperCase() : '',
       regNum: regForm.foreignerNumber || '',
       country: regForm.nationality || '인도네시아',
       visa: regForm.visaType || 'E9',
       company: regForm.years['2025']?.workPlace || regForm.years['2024']?.workPlace || '',
+      isMonthlyTenant: regForm.isMonthlyRent === '가',
       isMonthlyRent: regForm.isMonthlyRent === '가',
       phone: regForm.phone || '',
+      phoneComp: regForm.telecom || 'SKT',
       phoneCompany: regForm.telecom || 'SKT',
       bank: regForm.refundBankName || '',
       bankAccount: regForm.refundBank || '',
       address: regForm.residentAddress || regForm.residentRegisterAddress || '',
       hometaxId: regForm.hometaxId || '',
       hometaxPw: regForm.hometaxPw || '',
+      isAdditionalPayback: Boolean(regForm.additionalApplyPerformance && regForm.additionalApplyPerformance !== '0'),
       isAdditionalApply: Boolean(regForm.additionalApplyPerformance && regForm.additionalApplyPerformance !== '0'),
       updatedAt: new Date().toISOString()
     };
@@ -211,7 +142,7 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       let fileURL: string | undefined = undefined;
       const pdfFile = pdfFileObjects[yr];
       if (pdfFile) {
-        const uploadPath = `pdf/${clientId}/${yr}_${pdfFile.name}`;
+        const uploadPath = `${clientId}/${yr}.pdf`;
         const uploadedUrl = await uploadPdfToSupabase(pdfFile, uploadPath);
         if (uploadedUrl) {
           fileURL = uploadedUrl;
@@ -224,15 +155,22 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         year: parseInt(yr, 10),
         companyName: yrData.workPlace || '',
         netSalary: Number(yrData.totalSalary) || 0,
+        netSalaryFromAllCompany: Number(yrData.totalSalary) || 0,
         netSalaryFromReceipt: Number(yrData.totalSalary) || 0,
+        determinedTax: Number(yrData.originalDeterminedTax) || 0,
         determineTax: Number(yrData.originalDeterminedTax) || 0,
+        smallBusinessDeduction: Number(yrData.appliedTaxReduction) || 0,
         smallBusinessYouthTaxCredit: Number(yrData.appliedTaxReduction) || 0,
+        calculatedTax: Number(yrData.appliedTaxReduction) || 0,
         calculatedTaxCredit: Number(yrData.appliedTaxReduction) || 0,
+        determinedTaxRefund: Number(yrData.expectedRefundNational) || 0,
         totalTaxRefund: Number(yrData.expectedRefundNational) || 0,
         localTaxRefund: Number(yrData.expectedRefundLocal) || 0,
+        changedDeterminedTax: Number(yrData.recalcDeterminedTax) || 0,
         changedDetermineTax: Number(yrData.recalcDeterminedTax) || 0,
         changedLocalTax: Number(yrData.recalcLocalTax) || 0,
         regNum: regForm.foreignerNumber || '',
+        isSmallBusinessDeduction: yrData.isReductionEligible === '여' || yrData.appliedTaxReduction > 0,
         isSmallBusiness: yrData.isReductionEligible === '여' || yrData.appliedTaxReduction > 0,
         updatedAt: new Date().toISOString(),
         ...(fileURL ? { fileURL } : {})
