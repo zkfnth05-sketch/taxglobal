@@ -412,6 +412,13 @@ function App() {
               ? new Date(c.createdAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })
               : '26. 7. 15.';
 
+            const parseDate = (val: any) => {
+              if (!val || val === '-' || val === '') return '-';
+              const s = String(val);
+              if (s.includes('T')) return s.split('T')[0];
+              return s;
+            };
+
             return {
               id: c.serial || (25000 + idx),
               registeredDate,
@@ -420,13 +427,13 @@ function App() {
               birthDate: c.regNum || '-',
               visa: c.visa || 'E9',
               companyName: c.company || '-',
-              refundStatus: '◎경정상담중',
-              submissionStatus: '◎재직회사제출',
+              refundStatus: c.paybackProgress || c.status || c.refundStatus || '경정상담중',
+              submissionStatus: c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
-              claimDate: '-',
-              additionalPerformance: 0,
+              claimDate: parseDate(c.rectificationRequestDate || c.claimDate || c.rectificationDate),
+              additionalPerformance: c.additionalPerformance || 0,
               managerCountry: c.country || '인도네시아',
-              managerName: 'Gaby',
+              managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
             };
           });
 
@@ -441,6 +448,13 @@ function App() {
               ? new Date(c.createdAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })
               : '26. 7. 15.';
 
+            const parseDate = (val: any) => {
+              if (!val || val === '-' || val === '') return '-';
+              const s = String(val);
+              if (s.includes('T')) return s.split('T')[0];
+              return s;
+            };
+
             return {
               id: c.serial || (25000 + idx),
               registeredDate,
@@ -449,13 +463,13 @@ function App() {
               birthDate: c.regNum || '-',
               visa: c.visa || 'E9',
               companyName: c.company || '-',
-              refundStatus: '◎경정상담중',
-              submissionStatus: '◎재직회사제출',
+              refundStatus: c.paybackProgress || c.status || c.refundStatus || '경정상담중',
+              submissionStatus: c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
-              claimDate: '-',
-              additionalPerformance: 0,
+              claimDate: parseDate(c.rectificationRequestDate || c.claimDate || c.rectificationDate),
+              additionalPerformance: c.additionalPerformance || 0,
               managerCountry: c.country || '인도네시아',
-              managerName: 'Gaby',
+              managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
             };
           });
 
@@ -1571,14 +1585,20 @@ function App() {
                           </tr>
                         ) : (
                           displayedCustomers.map((customer) => {
-                            let refundClass = 'badge-pending';
-                            if (customer.refundStatus.includes('상담중')) refundClass = 'badge-consult';
-                            if (customer.refundStatus.includes('요청') || customer.refundStatus.includes('가입요청')) refundClass = 'badge-request';
-                            if (customer.refundStatus.includes('완료') || customer.refundStatus.includes('수납완료')) refundClass = 'badge-success';
+                            const formatStatusIcon = (status: string | undefined | null) => {
+                              if (!status || status === '-' || status.trim() === '') return '-';
+                              let clean = status.replace(/^[◎※◇▲♥◎]\s*/, '').trim();
 
-                            let submissionClass = 'badge-pending';
-                            if (customer.submissionStatus.includes('재직회사') || customer.submissionStatus.includes('이전회사') || customer.submissionStatus.includes('재획회사')) submissionClass = 'badge-submit-resubmit';
-                            if (customer.submissionStatus.includes('제출이력없음')) submissionClass = 'badge-submit-none';
+                              if (clean.startsWith('⏱️') || clean.startsWith('◆') || clean.startsWith('✔')) {
+                                return clean;
+                              }
+
+                              if (clean.includes('녹취계약') || clean.includes('우편발송') || clean.includes('모바일') || clean.includes('완료') || clean.includes('서류완료')) {
+                                return `◆${clean}`;
+                              }
+
+                              return `⏱️${clean}`;
+                            };
 
                             return (
                               <tr key={customer.id} onDoubleClick={() => handleOpenCustomerRegistration(customer)} style={{ cursor: 'pointer' }}>
@@ -1606,14 +1626,14 @@ function App() {
                                 <td>{customer.visa}</td>
                                 <td>{customer.companyName}</td>
                                 <td>
-                                  <span className={`badge-status ${refundClass}`}>
-                                    {customer.refundStatus}
+                                  <span style={{ fontSize: '13px', color: '#1e293b', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                    {formatStatusIcon(customer.refundStatus)}
                                   </span>
                                 </td>
                                 <td>
-                                  {customer.submissionStatus !== '-' ? (
-                                    <span className={`badge-status ${submissionClass}`}>
-                                      {customer.submissionStatus}
+                                  {customer.submissionStatus && customer.submissionStatus !== '-' ? (
+                                    <span style={{ fontSize: '13px', color: '#1e293b', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                      {formatStatusIcon(customer.submissionStatus)}
                                     </span>
                                   ) : (
                                     '-'
