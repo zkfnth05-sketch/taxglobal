@@ -428,9 +428,9 @@ function App() {
               visa: c.visa || 'E9',
               companyName: c.company || '-',
               refundStatus: c.paybackProgress || c.status || c.refundStatus || '경정상담중',
-              submissionStatus: c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
+              submissionStatus: c.taxReductionProgress || c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
-              claimDate: parseDate(c.rectificationRequestDate || c.claimDate || c.rectificationDate),
+              claimDate: parseDate(c.rectificationRequestDate || c.taxReductionSentDate || c.recordFileDate || c.claimDate || c.rectificationDate),
               additionalPerformance: c.additionalPerformance || 0,
               managerCountry: c.country || '인도네시아',
               managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
@@ -464,9 +464,9 @@ function App() {
               visa: c.visa || 'E9',
               companyName: c.company || '-',
               refundStatus: c.paybackProgress || c.status || c.refundStatus || '경정상담중',
-              submissionStatus: c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
+              submissionStatus: c.taxReductionProgress || c.taxReductionSubmissionStatus || c.taxReductionStatus || c.deductionStatus || c.submissionStatus || '-',
               monthlyRent: c.isMonthlyRent || c.isMonthlyTenant ? '예' : '아니오',
-              claimDate: parseDate(c.rectificationRequestDate || c.claimDate || c.rectificationDate),
+              claimDate: parseDate(c.rectificationRequestDate || c.taxReductionSentDate || c.recordFileDate || c.claimDate || c.rectificationDate),
               additionalPerformance: c.additionalPerformance || 0,
               managerCountry: c.country || '인도네시아',
               managerName: c.managerName || (c.country === '미얀마' ? 'Boram' : c.country === '베트남' ? 'Linh' : c.country === '네팔' ? '레누카' : 'Gaby'),
@@ -1573,7 +1573,8 @@ function App() {
                           <th>월세여부</th>
                           <th>경정청구일</th>
                           <th>추가 신청인 실적</th>
-                          <th style={{ width: '260px' }}>담당자 변경</th>
+                          <th style={{ minWidth: '170px' }}>담당자 변경</th>
+                          <th style={{ width: '70px', textAlign: 'center' }}>저장</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1643,9 +1644,10 @@ function App() {
                                 <td>{customer.claimDate}</td>
                                 <td>{customer.additionalPerformance}</td>
                                 <td>
-                                  <div className="inline-edit">
+                                  <div className="inline-edit" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                                     <select
                                       className="select-sm"
+                                      style={{ fontSize: '12px', padding: '2px 4px', height: '28px' }}
                                       value={customer.nationality}
                                       onChange={(e) => handleInlineCountryChange(customer.id, e.target.value)}
                                     >
@@ -1653,15 +1655,22 @@ function App() {
                                     </select>
                                     <select
                                       className="select-sm"
+                                      style={{ fontSize: '12px', padding: '2px 4px', height: '28px' }}
                                       value={customer.managerName}
                                       onChange={(e) => handleInlineManagerChange(customer.id, e.target.value)}
                                     >
                                       {managers.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                     </select>
-                                    <button className="btn-save" onClick={() => handleSaveRow(customer.id)}>
-                                      저장
-                                    </button>
                                   </div>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button 
+                                    className="btn-save" 
+                                    style={{ backgroundColor: '#1e293b', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 10px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                                    onClick={() => handleSaveRow(customer.id)}
+                                  >
+                                    저장
+                                  </button>
                                 </td>
                               </tr>
                             );

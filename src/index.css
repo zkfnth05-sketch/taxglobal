@@ -323,7 +323,7 @@ body {
   border-collapse: collapse;
   text-align: left;
   font-size: 14px;
-  min-width: 1400px; /* Force scroll horizontally on small views */
+  min-width: 1750px; /* Force smooth horizontal scroll to show all 15 columns */
 }
 
 .data-table th {
