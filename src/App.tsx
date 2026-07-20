@@ -1109,6 +1109,10 @@ function App() {
         feePaymentStatus: clientDetails?.feeMethod || '후불 22%',
         hometaxId: clientDetails?.hometaxId || '',
         hometaxPw: clientDetails?.hometaxPw || '',
+        dependentsCount: Number(clientDetails?.dependentsCount) || 0,
+        seniorCount: Number(clientDetails?.seniorCount) || 0,
+        disabledCount: Number(clientDetails?.disabledCount) || 0,
+        childCount: Number(clientDetails?.childCount) || 0,
         years: yearsObj
       }));
 

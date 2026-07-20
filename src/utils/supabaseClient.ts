@@ -128,6 +128,10 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
       hometaxPw: regForm.hometaxPw || '',
       isAdditionalPayback: Boolean(regForm.additionalApplyPerformance && regForm.additionalApplyPerformance !== '0'),
       isAdditionalApply: Boolean(regForm.additionalApplyPerformance && regForm.additionalApplyPerformance !== '0'),
+      dependentsCount: Number(regForm.dependentsCount) || 0,
+      seniorCount: Number(regForm.seniorCount) || 0,
+      disabledCount: Number(regForm.disabledCount) || 0,
+      childCount: Number(regForm.childCount) || 0,
       updatedAt: new Date().toISOString()
     };
 
