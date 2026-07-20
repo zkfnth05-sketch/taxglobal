@@ -16,7 +16,7 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { extractTextFromPdf, parsePdfText } from './utils/pdfParser';
-import { fetchInitialClientsFromSupabase, fetchAllClientsParallelFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
+import { supabase, fetchInitialClientsFromSupabase, fetchAllClientsParallelFromSupabase, saveRegistrationToSupabase } from './utils/supabaseClient';
 
 
 // Define customer interface
@@ -894,6 +894,94 @@ function App() {
     }
   };
 
+  const handleOpenCustomerRegistration = async (customer: Customer) => {
+    try {
+      showToast(`${customer.name} 님의 상세 정보를 불러오는 중입니다...`, 'info');
+
+      const { data: clientDetails } = await supabase
+        .from('Client')
+        .select('*')
+        .eq('regNum', customer.birthDate)
+        .maybeSingle();
+
+      let yearRecords: any[] = [];
+      if (clientDetails?.id) {
+        const { data: yData } = await supabase
+          .from('YearEndData')
+          .select('*')
+          .eq('clientId', clientDetails.id);
+        if (yData) yearRecords = yData;
+      }
+
+      const yearsObj: Record<string, any> = {
+        '2021': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+        '2022': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+        '2023': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+        '2024': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+        '2025': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+      };
+
+      for (const yr of yearRecords) {
+        const yrKey = String(yr.year);
+        if (yearsObj[yrKey]) {
+          yearsObj[yrKey] = {
+            totalSalary: yr.netSalary || yr.netSalaryFromReceipt || yr.netSalaryFromAllCompany || 0,
+            originalDeterminedTax: yr.determinedTax || yr.determineTax || 0,
+            appliedTaxReduction: yr.smallBusinessYouthTaxCredit || yr.smallBusinessDeduction || yr.calculatedTax || 0,
+            expectedRefundNational: yr.determinedTaxRefund || yr.totalTaxRefund || 0,
+            expectedRefundLocal: yr.localTaxRefund || 0,
+            recalcDeterminedTax: yr.changedDeterminedTax || yr.changedDetermineTax || 0,
+            recalcLocalTax: yr.changedLocalTax || 0,
+            isReductionEligible: yr.isSmallBusiness || yr.isSmallBusinessDeduction ? '여' : '부',
+            workPlace: yr.companyName || customer.companyName || '',
+            companyRegNum: yr.companyRegNo || yr.companyRegNum || '',
+            pdfFile: null,
+            pdfUrl: yr.fileURL || '',
+            correctionFileUrl: yr.correction_file_url || ''
+          };
+        }
+      }
+
+      setRegForm(prev => ({
+        ...prev,
+        name: clientDetails?.name || customer.name,
+        foreignerNumber: clientDetails?.regNum || customer.birthDate,
+        nationality: clientDetails?.country || customer.nationality,
+        phone: clientDetails?.phone || '',
+        telecom: clientDetails?.phoneComp || clientDetails?.phoneCompany || 'KT',
+        visaType: clientDetails?.visa || customer.visa,
+        visaExpiry: clientDetails?.visaExpireDate ? clientDetails.visaExpireDate.split('T')[0] : '',
+        isMonthlyRent: clientDetails?.isMonthlyTenant || clientDetails?.isMonthlyRent ? '가' : '부',
+        refundBankName: clientDetails?.bank || '',
+        refundBank: clientDetails?.bankAccount || '',
+        refundStatus: clientDetails?.paybackProgress || customer.refundStatus || '◎경정상담중',
+        residentRegisterAddress: clientDetails?.address || '',
+        residentAddress: clientDetails?.address || '',
+        deductionSubmissionStatus: '◎재직회사제출',
+        deductionSentDate: clientDetails?.taxReductionSentDate ? clientDetails.taxReductionSentDate.split('T')[0] : '',
+        additionalApplyPerformance: clientDetails?.isAdditionalPayback || clientDetails?.isAdditionalApply ? '가' : '부',
+        claimRequestDate: clientDetails?.rectificationRequestDate ? clientDetails.rectificationRequestDate.split('T')[0] : '',
+        feePaymentStatus: clientDetails?.feeMethod || '후불 22%',
+        hometaxId: clientDetails?.hometaxId || '',
+        hometaxPw: clientDetails?.hometaxPw || '',
+        years: yearsObj
+      }));
+
+      setCurrentView('registration');
+      showToast(`${customer.name} 님의 고객 등록 관리 화면을 열었습니다.`, 'success');
+    } catch (err) {
+      console.error('Error loading customer details:', err);
+      setRegForm(prev => ({
+        ...prev,
+        name: customer.name,
+        foreignerNumber: customer.birthDate,
+        nationality: customer.nationality,
+        visaType: customer.visa,
+      }));
+      setCurrentView('registration');
+    }
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedIds(filteredCustomers.map(c => c.id));
     else setSelectedIds([]);
@@ -1241,7 +1329,7 @@ function App() {
                             if (customer.submissionStatus.includes('제출이력없음')) submissionClass = 'badge-submit-none';
 
                             return (
-                              <tr key={customer.id}>
+                              <tr key={customer.id} onDoubleClick={() => handleOpenCustomerRegistration(customer)} style={{ cursor: 'pointer' }}>
                                 <td>{customer.id}</td>
                                 <td>
                                   <label className="checkbox-container" style={{ paddingLeft: 0 }}>
@@ -1255,7 +1343,13 @@ function App() {
                                 </td>
                                 <td>{customer.registeredDate}</td>
                                 <td>{customer.nationality}</td>
-                                <td style={{ fontWeight: 600 }}>{customer.name}</td>
+                                <td 
+                                  style={{ fontWeight: 600, color: '#0284c7', cursor: 'pointer', textDecoration: 'underline' }}
+                                  onClick={() => handleOpenCustomerRegistration(customer)}
+                                  title="클릭하여 고객등록 관리 화면 열기"
+                                >
+                                  {customer.name}
+                                </td>
                                 <td>{customer.birthDate}</td>
                                 <td>{customer.visa}</td>
                                 <td>{customer.companyName}</td>
