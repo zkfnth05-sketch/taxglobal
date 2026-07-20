@@ -3369,7 +3369,7 @@ function App() {
               const filterLabel = `${dashYearFilter === '전체' ? '전체연도' : dashYearFilter + '년도'} ${dashMonthFilter === '전체' ? '전체월' : dashMonthFilter + '월'}`;
 
               return (
-                <div style={{ padding: '24px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+                <div style={{ padding: '24px', paddingBottom: '120px', backgroundColor: '#f8fafc', minHeight: '100%', overflowY: 'auto' }}>
                   {/* Header Title & Filter Bar */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
