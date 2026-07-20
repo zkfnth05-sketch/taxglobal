@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   UserCheck,
@@ -279,6 +279,19 @@ function App() {
   const [dbManagers, setDbManagers] = useState<any[]>([]);
   const [managerPage, setManagerPage] = useState<number>(1);
   const managerItemsPerPage = 10;
+
+  // Dynamic All Available Managers List (Combining DB staff managers, default managers, and customer managers)
+  const availableManagerList = useMemo(() => {
+    const names = new Set<string>();
+    if (dbManagers && dbManagers.length > 0) {
+      dbManagers.forEach(m => { if (m && m.name) names.add(m.name); });
+    }
+    ['Boram', 'Jennie', '사이풀', 'Gaby', 'Linh', '소피아', '레누카', '아드난', '타리크', '사비르'].forEach(n => names.add(n));
+    if (customers && customers.length > 0) {
+      customers.forEach(c => { if (c && c.managerName) names.add(c.managerName); });
+    }
+    return Array.from(names).filter(Boolean);
+  }, [dbManagers, customers]);
 
   const [isAddManagerModalOpen, setIsAddManagerModalOpen] = useState<boolean>(false);
   const [newManagerData, setNewManagerData] = useState({
@@ -1134,11 +1147,19 @@ function App() {
 
   // Sync Manager Countries
   const handleInlineManagerChange = (customerId: number, managerName: string) => {
-    const matched = managers.find(m => m.name === managerName);
-    if (!matched) return;
+    const dbMgr = dbManagers.find(m => m.name === managerName);
+    const matchedTeam = dbTeams.find(t => t.id === dbMgr?.teamId);
+    const matchedCountry = matchedTeam?.name || managers.find(m => m.name === managerName)?.country || '';
+
     setCustomers(prev =>
       prev.map(c =>
-        c.id === customerId ? { ...c, managerName, managerCountry: matched.country } : c
+        c.id === customerId
+          ? {
+              ...c,
+              managerName,
+              ...(matchedCountry ? { managerCountry: matchedCountry } : {})
+            }
+          : c
       )
     );
   };
@@ -1670,7 +1691,7 @@ function App() {
                                       value={customer.managerName}
                                       onChange={(e) => handleInlineManagerChange(customer.id, e.target.value)}
                                     >
-                                      {managers.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                                      {availableManagerList.map(mName => <option key={mName} value={mName}>{mName}</option>)}
                                     </select>
                                   </div>
                                 </td>
@@ -1733,6 +1754,13 @@ function App() {
                           <select className="form-control" value={selectedRefundStatus} onChange={(e) => setSelectedRefundStatus(e.target.value)}>
                             <option value="">전체 상태</option>
                             {refundStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>담당 매니저 선택</label>
+                          <select className="form-control" value={selectedManager} onChange={(e) => setSelectedManager(e.target.value)}>
+                            <option value="">전체 매니저</option>
+                            {availableManagerList.map(m => <option key={m} value={m}>{m}</option>)}
                           </select>
                         </div>
                       </div>
