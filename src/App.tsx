@@ -667,13 +667,33 @@ function App() {
         updatedYears[yr] = recalculateYearData(updatedYears[yr], newDepCount, newSenCount, newDisCount, newChCount, selectedFeeRate);
       });
 
+      const updatedFreelancerYears = { ...prev.freelancerYears };
+      Object.keys(updatedFreelancerYears).forEach(yr => {
+        if (updatedFreelancerYears[yr]?.active) {
+          const income = Number(updatedFreelancerYears[yr].totalIncome) || 0;
+          const tax3 = Math.round(income * 0.03);
+          const tax03 = Math.round(tax3 * 0.1);
+          const total33 = tax3 + tax03;
+          const feeAmt = Math.round(total33 * (selectedFeeRate / 100));
+
+          updatedFreelancerYears[yr] = {
+            ...updatedFreelancerYears[yr],
+            refundExpectNational: String(tax3),
+            refundExpectLocal: String(tax03),
+            courtFee: String(total33),
+            expectedFeeAmt: String(feeAmt)
+          };
+        }
+      });
+
       return {
         ...prev,
         dependentsCount: newDepCount,
         seniorCount: newSenCount,
         disabledCount: newDisCount,
         childCount: newChCount,
-        years: updatedYears
+        years: updatedYears,
+        freelancerYears: updatedFreelancerYears
       };
     });
   };
@@ -3058,6 +3078,28 @@ function App() {
                           ))}
                           <td style={{ border: '1px solid #cbd5e1', textAlign: 'right', padding: '4px', backgroundColor: '#e2e8f0', color: '#0f766e' }}>
                             {targetYears.reduce((sum, yr) => sum + (regForm.freelancerYears?.[yr]?.active ? Number(regForm.freelancerYears?.[yr]?.totalWithholding33) || 0 : 0), 0).toLocaleString()}원
+                          </td>
+                        </tr>
+
+                        {/* Row: 적용 부양가족 수 / 소득공제 */}
+                        <tr style={{ backgroundColor: '#f0fdf4' }}>
+                          <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '6px', fontWeight: 'bold', textAlign: 'center', color: '#15803d', backgroundColor: '#dcfce7' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '14px' }}>👨‍👩‍👧‍👦</span>
+                              <span>적용 부양가족 수 / 인적공제</span>
+                            </div>
+                          </td>
+                          {targetYears.map(yr => {
+                            const totalDeps = regForm.dependentsCount + regForm.seniorCount + regForm.disabledCount + regForm.childCount;
+                            const totalDeductionVal = (regForm.dependentsCount * 150) + (regForm.seniorCount * 100) + (regForm.disabledCount * 200);
+                            return (
+                              <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '4px', textAlign: 'center', fontSize: '11px', color: '#15803d', fontWeight: 'bold', backgroundColor: '#f0fdf4' }}>
+                                {totalDeps > 0 ? `${totalDeps}명 (+${totalDeductionVal}만 원 공제)` : '본인 기본공제'}
+                              </td>
+                            );
+                          })}
+                          <td style={{ border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 'bold', padding: '4px', backgroundColor: '#dcfce7', color: '#15803d', fontSize: '12px' }}>
+                            {(regForm.dependentsCount + regForm.seniorCount + regForm.disabledCount + regForm.childCount) > 0 ? `부양가족 총 ${regForm.dependentsCount + regForm.seniorCount + regForm.disabledCount + regForm.childCount}명 반영` : '본인 공제 반영'}
                           </td>
                         </tr>
 
