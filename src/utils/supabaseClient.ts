@@ -181,28 +181,50 @@ export async function saveRegistrationToSupabase(regForm: any, pdfFileObjects: R
         }
       }
 
+      let workPeriodStart: string | null = null;
+      let workPeriodEnd: string | null = null;
+      if (yrData.workPeriod && yrData.workPeriod.includes('~')) {
+        const parts = yrData.workPeriod.split('~').map((s: string) => s.trim());
+        if (parts[0]) workPeriodStart = parts[0];
+        if (parts[1]) workPeriodEnd = parts[1];
+      }
+
+      const totalSal = Number(yrData.salaryTotal || yrData.totalSalary) || 0;
+      const calcTax = Number(yrData.taxBase) || 0;
+      const smallDed = Number(yrData.childReduction || yrData.appliedTaxReduction) || 0;
+      const origTax = Number(yrData.decisionTax || yrData.originalDeterminedTax) || 0;
+      const recalcDetTax = Number(yrData.decisionTaxApplyAmt || yrData.recalcDeterminedTax) || 0;
+      const recalcLocTax = Number(yrData.localTaxApplyAmt || yrData.recalcLocalTax) || 0;
+      const refNat = Number(yrData.refundExpectNational || yrData.expectedRefundNational) || 0;
+      const refLoc = Number(yrData.refundExpectLocal || yrData.expectedRefundLocal) || 0;
+
       const yearPayload: Record<string, any> = {
         clientId: clientId,
         year: parseInt(yr, 10),
         companyName: yrData.workPlace || '',
-        netSalary: Number(yrData.totalSalary) || 0,
-        netSalaryFromAllCompany: Number(yrData.totalSalary) || 0,
-        netSalaryFromReceipt: Number(yrData.totalSalary) || 0,
-        determinedTax: Number(yrData.originalDeterminedTax) || 0,
-        determineTax: Number(yrData.originalDeterminedTax) || 0,
-        smallBusinessDeduction: Number(yrData.appliedTaxReduction) || 0,
-        smallBusinessYouthTaxCredit: Number(yrData.appliedTaxReduction) || 0,
-        calculatedTax: Number(yrData.appliedTaxReduction) || 0,
-        calculatedTaxCredit: Number(yrData.appliedTaxReduction) || 0,
-        determinedTaxRefund: Number(yrData.expectedRefundNational) || 0,
-        totalTaxRefund: Number(yrData.expectedRefundNational) || 0,
-        localTaxRefund: Number(yrData.expectedRefundLocal) || 0,
-        changedDeterminedTax: Number(yrData.recalcDeterminedTax) || 0,
-        changedDetermineTax: Number(yrData.recalcDeterminedTax) || 0,
-        changedLocalTax: Number(yrData.recalcLocalTax) || 0,
-        regNum: regForm.foreignerNumber || '',
-        isSmallBusinessDeduction: yrData.isReductionEligible === '여' || yrData.appliedTaxReduction > 0,
-        isSmallBusiness: yrData.isReductionEligible === '여' || yrData.appliedTaxReduction > 0,
+        companyRegNo: yrData.businessNumber || yrData.companyRegNum || '',
+        companyRegisterNumber: yrData.businessNumber || yrData.companyRegNum || '',
+        netSalary: totalSal,
+        netSalaryFromAllCompany: totalSal,
+        netSalaryFromReceipt: totalSal,
+        determinedTax: origTax,
+        determineTax: origTax,
+        smallBusinessDeduction: smallDed,
+        smallBusinessYouthTaxCredit: smallDed,
+        calculatedTax: calcTax,
+        calculatedTaxCredit: calcTax,
+        determinedTaxRefund: refNat,
+        totalTaxRefund: refNat,
+        localTaxRefund: refLoc,
+        changedDeterminedTax: recalcDetTax,
+        changedDetermineTax: recalcDetTax,
+        changedLocalTax: recalcLocTax,
+        changedTotalTax: recalcDetTax + recalcLocTax,
+        regNum: regForm.foreignerNumber || yrData.birthDate || '',
+        isSmallBusinessDeduction: yrData.isReductionEligible === '여' || smallDed > 0,
+        isSmallBusiness: yrData.isReductionEligible === '여' || smallDed > 0,
+        ...(workPeriodStart ? { workPeriodStart } : {}),
+        ...(workPeriodEnd ? { workPeriodEnd } : {}),
         updatedAt: new Date().toISOString(),
         ...(fileURL ? { fileURL } : {})
       };

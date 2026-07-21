@@ -72,6 +72,72 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
+// Helper to determine youth tax reduction eligibility based on RRN and Employment Date
+const checkYouthEligibility = (rrnStr: string, empDateStr: string, yearsObj?: any) => {
+  const rrn = rrnStr ? rrnStr.replace(/-/g, '').trim() : '';
+  let employmentDateStr = empDateStr ? empDateStr.trim() : '';
+
+  if (!employmentDateStr && yearsObj) {
+    const periods = Object.values(yearsObj || {})
+      .map((y: any) => y.workPeriod)
+      .filter((wp: string) => wp && wp.includes('~'))
+      .map((wp: string) => wp.split('~')[0].trim())
+      .filter((d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .sort();
+    if (periods.length > 0) {
+      employmentDateStr = periods[0];
+    }
+  }
+
+  if (!employmentDateStr) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    employmentDateStr = `${yyyy}-${mm}-${dd}`;
+  }
+
+  if (!rrn || rrn.length < 7) {
+    return { isEligible: true, age: null }; // Default to true if RRN is not fully entered
+  }
+
+  const yy = rrn.substring(0, 2);
+  const mm = rrn.substring(2, 4);
+  const dd = rrn.substring(4, 6);
+  const genderDigit = rrn.charAt(6);
+
+  let century = '19';
+  if (genderDigit === '1' || genderDigit === '2' || genderDigit === '5' || genderDigit === '6') {
+    century = '19';
+  } else if (genderDigit === '3' || genderDigit === '4' || genderDigit === '7' || genderDigit === '8') {
+    century = '20';
+  } else if (genderDigit === '9' || genderDigit === '0') {
+    century = '18';
+  } else {
+    century = Number(yy) > 26 ? '19' : '20';
+  }
+
+  const birthYear = parseInt(`${century}${yy}`, 10);
+  const birthMonth = parseInt(mm, 10);
+  const birthDay = parseInt(dd, 10);
+
+  const empParts = employmentDateStr.split('-');
+  if (empParts.length !== 3) {
+    return { isEligible: true, age: null };
+  }
+  const empYear = parseInt(empParts[0], 10);
+  const empMonth = parseInt(empParts[1], 10);
+  const empDay = parseInt(empParts[2], 10);
+
+  let age = empYear - birthYear;
+  if (empMonth < birthMonth || (empMonth === birthMonth && empDay < birthDay)) {
+    age--;
+  }
+
+  const isEligible = age >= 15 && age <= 34;
+  return { isEligible, age };
+};
+
 function App() {
   // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
@@ -305,6 +371,20 @@ function App() {
     }
     return Array.from(names).filter(Boolean);
   }, [dbManagers, customers]);
+
+  const [isManagerModalOpen, setIsManagerModalOpen] = useState<boolean>(false);
+  const [tempModalTeam, setTempModalTeam] = useState<string>('');
+  const [tempModalManager, setTempModalManager] = useState<string>('');
+
+  const handleApplyManagerChange = () => {
+    setRegForm(prev => ({
+      ...prev,
+      nationality: tempModalTeam,
+      managerName: tempModalManager
+    }));
+    setIsManagerModalOpen(false);
+    showToast(`담당 정보가 ${tempModalTeam}팀 ${tempModalManager} 매니저로 변경되었습니다.`, 'success');
+  };
 
   const [isAddManagerModalOpen, setIsAddManagerModalOpen] = useState<boolean>(false);
   const [newManagerData, setNewManagerData] = useState({
@@ -594,6 +674,129 @@ function App() {
   const [targetYears, setTargetYears] = useState<string[]>(['2021', '2022', '2023', '2024', '2025']);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number>(22);
 
+  // Real-time Youth Tax Reduction Calculation
+  const youthTaxReductionInfo = useMemo(() => {
+    const rrn = regForm.foreignerNumber ? regForm.foreignerNumber.replace(/-/g, '').trim() : '';
+    const actualEmpDateStr = regForm.residentAddress ? regForm.residentAddress.trim() : '';
+
+    const periods = Object.values(regForm.years || {})
+      .map((y: any) => y.workPeriod)
+      .filter((wp: string) => wp && wp.includes('~'))
+      .map((wp: string) => wp.split('~')[0].trim())
+      .filter((d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .sort();
+    
+    const hasEmpDate = Boolean(actualEmpDateStr || periods.length > 0);
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const employmentDateStr = actualEmpDateStr || (periods.length > 0 ? periods[0] : todayStr);
+
+    let eligibleBirthRangeStr = '';
+    let birthDateFormatted = '';
+    let age = null;
+    let isEligible = false;
+    let hasRrn = false;
+
+    // Calculate Eligible Birth Range
+    if (employmentDateStr) {
+      const empParts = employmentDateStr.split('-');
+      if (empParts.length === 3) {
+        const empYear = parseInt(empParts[0], 10);
+        const empMonth = parseInt(empParts[1], 10);
+        const empDay = parseInt(empParts[2], 10);
+
+        const earliestBirthDate = new Date(empYear - 35, empMonth - 1, empDay + 1);
+        const latestBirthDate = new Date(empYear - 15, empMonth - 1, empDay);
+
+        const formatRangeDate = (d: Date) => {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}년 ${m}월 ${day}일`;
+        };
+        eligibleBirthRangeStr = `${formatRangeDate(earliestBirthDate)} ~ ${formatRangeDate(latestBirthDate)}`;
+
+        if (rrn && rrn.length >= 7) {
+          const yy = rrn.substring(0, 2);
+          const mm = rrn.substring(2, 4);
+          const dd = rrn.substring(4, 6);
+          const genderDigit = rrn.charAt(6);
+
+          let century = '19';
+          if (genderDigit === '1' || genderDigit === '2' || genderDigit === '5' || genderDigit === '6') {
+            century = '19';
+          } else if (genderDigit === '3' || genderDigit === '4' || genderDigit === '7' || genderDigit === '8') {
+            century = '20';
+          } else if (genderDigit === '9' || genderDigit === '0') {
+            century = '18';
+          } else {
+            century = Number(yy) > 26 ? '19' : '20';
+          }
+
+          const birthYear = parseInt(`${century}${yy}`, 10);
+          const birthMonth = parseInt(mm, 10);
+          const birthDay = parseInt(dd, 10);
+
+          birthDateFormatted = `${birthYear}년 ${mm}월 ${dd}일`;
+          hasRrn = true;
+
+          age = empYear - birthYear;
+          if (empMonth < birthMonth || (empMonth === birthMonth && empDay < birthDay)) {
+            age--;
+          }
+
+          isEligible = age >= 15 && age <= 34;
+        }
+      }
+    }
+
+    return {
+      hasEmpDate,
+      hasRrn,
+      birthDateStr: birthDateFormatted,
+      ageAtEmployment: age,
+      isEligible,
+      eligibleBirthRangeStr
+    };
+  }, [regForm.foreignerNumber, regForm.residentAddress, regForm.years]);
+
+  // Automatically recalculate yearly tax data when foreigner number, employment date, or fee rate changes
+  useEffect(() => {
+    setRegForm(prev => {
+      let changed = false;
+      const updatedYears = { ...prev.years };
+
+      Object.keys(updatedYears).forEach(yr => {
+        if (updatedYears[yr] && (updatedYears[yr].active || updatedYears[yr].isFileUploaded)) {
+          const recalculated = recalculateYearData(
+            updatedYears[yr],
+            prev.dependentsCount,
+            prev.seniorCount,
+            prev.disabledCount,
+            prev.childCount,
+            selectedFeeRate,
+            prev.foreignerNumber,
+            prev.residentAddress
+          );
+
+          // Deep comparison to avoid infinite loops
+          if (JSON.stringify(recalculated) !== JSON.stringify(updatedYears[yr])) {
+            updatedYears[yr] = recalculated;
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        return {
+          ...prev,
+          years: updatedYears
+        };
+      }
+      return prev;
+    });
+  }, [regForm.foreignerNumber, regForm.residentAddress, selectedFeeRate]);
+
   const handleResetAll = () => {
     setRegForm({
       name: '',
@@ -663,16 +866,22 @@ function App() {
     senCount: number, 
     disCount: number, 
     chCount: number, 
-    feeRate: number
+    feeRate: number,
+    rrn?: string,
+    empDate?: string
   ) => {
     if (!yrData || (!yrData.active && !yrData.isFileUploaded)) return yrData;
+
+    const rrnVal = rrn !== undefined ? rrn : regForm.foreignerNumber;
+    const empDateVal = empDate !== undefined ? empDate : regForm.residentAddress;
+    const eligibility = checkYouthEligibility(rrnVal, empDateVal);
 
     const originalDecisionTax = Number(yrData.decisionTax) || 0;
     const originalLocalTax = Number(yrData.localTax) || 0;
     const calculatedTax = Number(yrData.taxBase) || 0;
     const childDeduction = Number(yrData.childDeduction) || 0;
 
-    const isReductionApplied = yrData.childReductionApply !== 'N' && yrData.childReductionApply !== '0';
+    const isReductionApplied = eligibility.isEligible && yrData.childReductionApply !== 'N' && yrData.childReductionApply !== '0';
     const reductionAmt = isReductionApplied ? Math.min(1500000, Math.round(calculatedTax * 0.9)) : 0;
     
     // 부양가족 소득공제 (인당 150만, 경로우대 +100만, 장애인 +200만)
@@ -967,6 +1176,18 @@ function App() {
         if (parsed.name && !prev.name) updatedBasic.name = parsed.name;
         if (parsed.foreignerNumber && !prev.foreignerNumber) updatedBasic.foreignerNumber = parsed.foreignerNumber;
 
+        if (parsed.workPeriod) {
+          const start = parsed.workPeriod.split('~')[0].trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+            const currentAddress = prev.residentAddress || updatedBasic.residentAddress;
+            if (!currentAddress) {
+              updatedBasic.residentAddress = start;
+            } else if (start < currentAddress) {
+              updatedBasic.residentAddress = start;
+            }
+          }
+        }
+
         return {
           ...prev,
           ...updatedBasic,
@@ -978,6 +1199,77 @@ function App() {
     } catch (err: any) {
       console.error(err);
       showToast(`PDF 분석 중 오류가 발생했습니다: ${err.message || err}`, 'error');
+    }
+  };
+
+  const handleReanalyzeYearPdf = async (yr: string) => {
+    const yrData = regForm.years[yr];
+    if (!yrData) return;
+
+    try {
+      showToast(`[${yr}년도] 원본 PDF 파일 다시 읽기 및 세액 재계산을 진행합니다...`, 'info');
+      let text = '';
+      let fileObj: File | null = yrData.pdfFile || null;
+
+      if (fileObj) {
+        text = await extractTextFromPdf(fileObj);
+      } else if (yrData.fileURL || yrData.pdfUrl) {
+        const targetUrl = yrData.fileURL || yrData.pdfUrl;
+        const resp = await fetch(targetUrl);
+        if (!resp.ok) throw new Error('PDF 파일 다운로드에 실패했습니다.');
+        const blob = await resp.blob();
+        fileObj = new File([blob], `${yr}.pdf`, { type: 'application/pdf' });
+        text = await extractTextFromPdf(fileObj);
+      } else {
+        showToast(`[${yr}년도] 재분석할 PDF 파일이 존재하지 않습니다.`, 'error');
+        return;
+      }
+
+      const parsed = parsePdfText(text, yr);
+      const originalDecisionTax = Number(parsed.determinedIncomeTax) || 0;
+      const originalLocalTax = Number(parsed.determinedLocalTax) || 0;
+
+      setRegForm(prev => {
+        const updatedYears = { ...prev.years };
+        const rawYrData = {
+          active: true,
+          isFileUploaded: true,
+          pdfFile: fileObj,
+          fileURL: yrData.fileURL || yrData.pdfUrl || '',
+          pdfUrl: yrData.fileURL || yrData.pdfUrl || '',
+          workPeriod: parsed.workPeriod || updatedYears[yr]?.workPeriod || '',
+          workPlace: parsed.workPlace || updatedYears[yr]?.workPlace || '',
+          businessNumber: parsed.businessNumber || updatedYears[yr]?.businessNumber || '',
+          birthDate: parsed.foreignerNumber ? parsed.foreignerNumber.substring(0, 6) : updatedYears[yr]?.birthDate || '',
+          salaryTotal: parsed.salaryTotal || updatedYears[yr]?.salaryTotal || '0',
+          taxBase: parsed.decisionTax || parsed.taxBase || updatedYears[yr]?.taxBase || '0',
+          childReduction: parsed.childReduction || '0',
+          childDeduction: parsed.childDeduction || '0',
+          decisionTax: parsed.determinedIncomeTax || '0',
+          localTax: parsed.determinedLocalTax || '0',
+          taxRefundTotal: String(originalDecisionTax + originalLocalTax),
+          childReductionApply: 'Y',
+        };
+
+        updatedYears[yr] = recalculateYearData(
+          rawYrData,
+          prev.dependentsCount,
+          prev.seniorCount,
+          prev.disabledCount,
+          prev.childCount,
+          selectedFeeRate
+        );
+
+        return {
+          ...prev,
+          years: updatedYears
+        };
+      });
+
+      showToast(`[${yr}년도] PDF 원본 재분석 완료! 세액 및 환급금이 최신 로직으로 자동 교정되었습니다.`, 'success');
+    } catch (err: any) {
+      console.error('Reanalyze PDF Error:', err);
+      showToast(`PDF 재분석 실패: ${err.message || err}`, 'error');
     }
   };
 
@@ -1046,6 +1338,18 @@ function App() {
           const updatedBasic: any = {};
           if (parsed.name && !prev.name) updatedBasic.name = parsed.name;
           if (parsed.foreignerNumber && !prev.foreignerNumber) updatedBasic.foreignerNumber = parsed.foreignerNumber;
+
+          if (parsed.workPeriod) {
+            const start = parsed.workPeriod.split('~')[0].trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+              const currentAddress = prev.residentAddress || updatedBasic.residentAddress;
+              if (!currentAddress) {
+                updatedBasic.residentAddress = start;
+              } else if (start < currentAddress) {
+                updatedBasic.residentAddress = start;
+              }
+            }
+          }
 
           return {
             ...prev,
@@ -1213,48 +1517,152 @@ function App() {
     try {
       showToast(`${customer.name} 님의 상세 정보를 불러오는 중입니다...`, 'info');
 
-      const { data: clientDetails } = await supabase
-        .from('Client')
-        .select('*')
-        .eq('regNum', customer.birthDate)
-        .maybeSingle();
+      // Query Client records using multiple matching strategies to handle duplicate/legacy entries in Supabase
+      let clientRecords: any[] = [];
+      if (customer.birthDate) {
+        const { data } = await supabase
+          .from('Client')
+          .select('*')
+          .eq('regNum', customer.birthDate);
+        if (data && data.length > 0) clientRecords = data;
+      }
+
+      if (clientRecords.length === 0 && customer.name) {
+        const { data } = await supabase
+          .from('Client')
+          .select('*')
+          .ilike('name', `%${customer.name.trim()}%`);
+        if (data && data.length > 0) clientRecords = data;
+      }
+
+      const clientDetails = clientRecords[0] || null;
+      const clientIds = clientRecords.map(c => c.id).filter(Boolean);
 
       let yearRecords: any[] = [];
-      if (clientDetails?.id) {
+      if (clientIds.length > 0) {
         const { data: yData } = await supabase
           .from('YearEndData')
           .select('*')
-          .eq('clientId', clientDetails.id);
-        if (yData) yearRecords = yData;
+          .in('clientId', clientIds);
+        if (yData && yData.length > 0) yearRecords = yData;
       }
 
+      const defaultYearObj = () => ({
+        active: false,
+        isFileUploaded: false,
+        pdfFile: null,
+        fileURL: '',
+        pdfUrl: '',
+        workPeriod: '',
+        workPlace: '',
+        businessNumber: '',
+        companyRegNum: '',
+        birthDate: '',
+        salaryTotal: 0,
+        totalSalary: 0,
+        taxBase: 0,
+        childReduction: 0,
+        appliedTaxReduction: 0,
+        decisionTax: 0,
+        originalDeterminedTax: 0,
+        localTax: 0,
+        taxRefundTotal: 0,
+        childReductionApply: '90%',
+        childReductionApplyAmt: 0,
+        decisionTaxApplyAmt: 0,
+        recalcDeterminedTax: 0,
+        localTaxApplyAmt: 0,
+        recalcLocalTax: 0,
+        decisionTaxRefundAmt: 0,
+        refundExpectNational: 0,
+        expectedRefundNational: 0,
+        refundExpectLocal: 0,
+        expectedRefundLocal: 0,
+        courtFee: 0,
+        expectedFeeAmt: 0,
+        isReductionEligible: '가',
+        correctionFileUrl: ''
+      });
+
       const yearsObj: Record<string, any> = {
-        '2021': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
-        '2022': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
-        '2023': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
-        '2024': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
-        '2025': { totalSalary: 0, originalDeterminedTax: 0, appliedTaxReduction: 0, expectedRefundNational: 0, expectedRefundLocal: 0, recalcDeterminedTax: 0, recalcLocalTax: 0, isReductionEligible: '가', workPlace: '', companyRegNum: '', pdfFile: null, pdfUrl: '' },
+        '2021': defaultYearObj(),
+        '2022': defaultYearObj(),
+        '2023': defaultYearObj(),
+        '2024': defaultYearObj(),
+        '2025': defaultYearObj(),
       };
 
       for (const yr of yearRecords) {
         const yrKey = String(yr.year);
-        if (yearsObj[yrKey]) {
-          yearsObj[yrKey] = {
-            totalSalary: yr.netSalary || yr.netSalaryFromReceipt || yr.netSalaryFromAllCompany || 0,
-            originalDeterminedTax: yr.determinedTax || yr.determineTax || 0,
-            appliedTaxReduction: yr.smallBusinessYouthTaxCredit || yr.smallBusinessDeduction || yr.calculatedTax || 0,
-            expectedRefundNational: yr.determinedTaxRefund || yr.totalTaxRefund || 0,
-            expectedRefundLocal: yr.localTaxRefund || 0,
-            recalcDeterminedTax: yr.changedDeterminedTax || yr.changedDetermineTax || 0,
-            recalcLocalTax: yr.changedLocalTax || 0,
-            isReductionEligible: yr.isSmallBusiness || yr.isSmallBusinessDeduction ? '여' : '부',
-            workPlace: yr.companyName || customer.companyName || '',
-            companyRegNum: yr.companyRegNo || yr.companyRegNum || '',
-            pdfFile: null,
-            pdfUrl: yr.fileURL || '',
-            correctionFileUrl: yr.correction_file_url || ''
-          };
+        if (!yearsObj[yrKey]) continue;
+
+        const currentYr = yearsObj[yrKey];
+        const hasPdf = Boolean(yr.fileURL);
+        if (currentYr.active && currentYr.isFileUploaded && !hasPdf) {
+          continue; // Prioritize records with uploaded PDF
         }
+
+        const workPeriodStr = (yr.workPeriodStart && yr.workPeriodEnd) 
+          ? `${yr.workPeriodStart} ~ ${yr.workPeriodEnd}` 
+          : (yr.workPeriodStart || yr.workPeriodEnd || yr.workPeriod || '');
+
+        const totalSal = yr.netSalary || yr.netSalaryFromReceipt || yr.netSalaryFromAllCompany || 0;
+        const calcTax = yr.calculatedTax || 0;
+        const smallDed = yr.smallBusinessYouthTaxCredit || yr.smallBusinessDeduction || 0;
+        const detTax = yr.determinedTax || yr.determineTax || yr.determinedTaxFromReceipt || 0;
+        const locTax = yr.localTax || 0;
+        const changedDetTax = yr.changedDeterminedTax || yr.changedDetermineTax || 0;
+        const changedLocTax = yr.changedLocalTax || 0;
+        const totalRef = yr.totalTaxRefund || yr.determinedTaxRefund || 0;
+        const localRef = yr.localTaxRefund || 0;
+
+        yearsObj[yrKey] = {
+          active: true,
+          isFileUploaded: hasPdf || currentYr.isFileUploaded,
+          pdfFile: null,
+          fileURL: yr.fileURL || currentYr.fileURL || '',
+          pdfUrl: yr.fileURL || currentYr.pdfUrl || '',
+          workPeriod: workPeriodStr || currentYr.workPeriod || '',
+          workPlace: yr.companyName || currentYr.workPlace || customer.companyName || '',
+          businessNumber: yr.companyRegNo || yr.companyRegisterNumber || currentYr.businessNumber || '',
+          companyRegNum: yr.companyRegNo || yr.companyRegisterNumber || currentYr.companyRegNum || '',
+          birthDate: yr.regNum || currentYr.birthDate || customer.birthDate || '',
+          
+          salaryTotal: totalSal || currentYr.salaryTotal || 0,
+          totalSalary: totalSal || currentYr.totalSalary || 0,
+          
+          taxBase: calcTax || currentYr.taxBase || 0,
+          
+          childReduction: smallDed || currentYr.childReduction || 0,
+          appliedTaxReduction: smallDed || currentYr.appliedTaxReduction || 0,
+          
+          decisionTax: detTax || currentYr.decisionTax || 0,
+          originalDeterminedTax: detTax || currentYr.originalDeterminedTax || 0,
+          
+          localTax: locTax || currentYr.localTax || 0,
+          taxRefundTotal: yr.totalTax || currentYr.taxRefundTotal || 0,
+          
+          childReductionApply: yr.isSmallBusinessDeduction ? '90%' : (currentYr.childReductionApply || '90%'),
+          childReductionApplyAmt: smallDed || currentYr.childReductionApplyAmt || 0,
+          
+          decisionTaxApplyAmt: changedDetTax || currentYr.decisionTaxApplyAmt || 0,
+          recalcDeterminedTax: changedDetTax || currentYr.recalcDeterminedTax || 0,
+          
+          localTaxApplyAmt: changedLocTax || currentYr.localTaxApplyAmt || 0,
+          recalcLocalTax: changedLocTax || currentYr.recalcLocalTax || 0,
+          
+          decisionTaxRefundAmt: (changedDetTax + changedLocTax) || currentYr.decisionTaxRefundAmt || 0,
+          
+          refundExpectNational: totalRef || currentYr.refundExpectNational || 0,
+          expectedRefundNational: totalRef || currentYr.expectedRefundNational || 0,
+          
+          refundExpectLocal: localRef || currentYr.refundExpectLocal || 0,
+          expectedRefundLocal: localRef || currentYr.expectedRefundLocal || 0,
+          
+          courtFee: totalRef || currentYr.courtFee || 0,
+          isReductionEligible: (yr.isSmallBusiness || yr.isSmallBusinessDeduction) ? '여' : '부',
+          correctionFileUrl: yr.correction_file_url || currentYr.correctionFileUrl || ''
+        };
       }
 
       setRegForm(prev => ({
@@ -1393,7 +1801,7 @@ function App() {
       claimDate: regForm.claimCompleteDate || '-',
       additionalPerformance: Number(regForm.additionalApplyPerformance) || 0,
       managerCountry: regForm.nationality,
-      managerName: managers.find(m => m.country === regForm.nationality)?.name || managers[0].name
+      managerName: regForm.managerName || managers.find(m => m.country === regForm.nationality)?.name || managers[0].name
     };
 
     setCustomers(prev => [newCustomerItem, ...prev]);
@@ -1810,9 +2218,76 @@ function App() {
                       <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#ef4444' }}>고객정보 및 근로소득 원천징수영수증을 등록, 관리하고 환급 가능한 세액을 계산합니다.</span>
                     </h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                      <span style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '3px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
+                      <span 
+                        onClick={() => {
+                          setTempModalTeam(regForm.nationality || '미얀마');
+                          setTempModalManager(regForm.managerName || 'Boram');
+                          setIsManagerModalOpen(true);
+                        }}
+                        title="클릭하여 담당 팀 및 매니저 변경"
+                        style={{ 
+                          backgroundColor: '#2563eb', 
+                          color: '#ffffff', 
+                          padding: '3px 10px', 
+                          borderRadius: '4px', 
+                          fontSize: '13px', 
+                          fontWeight: 'bold', 
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(37,99,235,0.3)',
+                          userSelect: 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                      >
                         {regForm.nationality || '미얀마'}팀 {regForm.managerName || 'Boram'}
+                        <span style={{ fontSize: '11px', opacity: 0.9 }}>✏️</span>
                       </span>
+
+                      {isManagerModalOpen && (
+                        <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(3px)' }} onClick={() => setIsManagerModalOpen(false)}>
+                          <div className="modal-content" style={{ width: '380px', borderRadius: '12px', padding: '24px', backgroundColor: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)' }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>👥</span> 담당 팀 및 매니저 변경
+                              </h3>
+                              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }} onClick={() => setIsManagerModalOpen(false)}><X size={20} /></button>
+                            </div>
+                            
+                            <div style={{ marginBottom: '16px' }}>
+                              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>담당 팀 (국적)</label>
+                              <select 
+                                className="form-control" 
+                                style={{ width: '100%', height: '38px', fontSize: '14px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px' }} 
+                                value={tempModalTeam} 
+                                onChange={(e) => setTempModalTeam(e.target.value)}
+                              >
+                                {nationalities.map(t => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                            </div>
+
+                            <div style={{ marginBottom: '24px' }}>
+                              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>담당 매니저</label>
+                              <select 
+                                className="form-control" 
+                                style={{ width: '100%', height: '38px', fontSize: '14px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px' }} 
+                                value={tempModalManager} 
+                                onChange={(e) => setTempModalManager(e.target.value)}
+                              >
+                                {availableManagerList.map(m => <option key={m} value={m}>{m}</option>)}
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <button className="btn-cancel" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setIsManagerModalOpen(false)}>취소</button>
+                              <button className="btn-submit" style={{ padding: '8px 20px', fontSize: '13px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }} onClick={handleApplyManagerChange}>변경 적용</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>|</span>
                       <span style={{ backgroundColor: '#1e293b', color: '#ffffff', padding: '3px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', display: 'inline-block' }}>
                         최종업데이트 : {(() => {
@@ -1828,8 +2303,81 @@ function App() {
                           return `${year}년 ${month}월 ${date}일 ${ampm} ${hours}:${minutes}`;
                         })()}
                       </span>
+                      <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>|</span>
+                      <span style={{ 
+                        backgroundColor: '#fef2f2', 
+                        color: '#991b1b', 
+                        border: '2px solid #ef4444',
+                        padding: '3px 12px', 
+                        borderRadius: '4px', 
+                        fontSize: '13px', 
+                        fontWeight: 'bold', 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        🎯 청년 감면 대상 출생일 : {youthTaxReductionInfo.eligibleBirthRangeStr}
+                      </span>
                     </div>
                   </div>
+                  
+                  {/* Real-time Youth Tax Reduction Age Calculator */}
+                  <div style={{
+                    backgroundColor: '#f0fdf4',
+                    border: '2px solid #22c55e',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    marginLeft: 'auto',
+                    marginRight: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    minWidth: '380px',
+                    minHeight: '52px'
+                  }}>
+                    {youthTaxReductionInfo.hasEmpDate ? (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>
+                          📅 취업일 기준 청년 감면 대상 범위
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#14532d', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                          {youthTaxReductionInfo.eligibleBirthRangeStr}
+                        </div>
+                        {youthTaxReductionInfo.hasRrn ? (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            marginTop: '2px', 
+                            fontSize: '12px',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: youthTaxReductionInfo.isEligible ? '#ecfdf5' : '#fef2f2',
+                            border: `1px solid ${youthTaxReductionInfo.isEligible ? '#10b981' : '#f87171'}`,
+                            color: youthTaxReductionInfo.isEligible ? '#065f46' : '#991b1b',
+                            fontWeight: 'bold'
+                          }}>
+                            {youthTaxReductionInfo.isEligible ? '✅ 청년 소득세 감면: 적용 가능' : '❌ 청년 소득세 감면: 대상 아님'}
+                            <span style={{ fontSize: '11px', fontWeight: 'normal', opacity: 0.9 }}>
+                              (취업 당시 만 {youthTaxReductionInfo.ageAtEmployment}세)
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '11px', color: '#15803d', marginTop: '2px' }}>
+                            ✍️ 등록번호 입력 시 대상 여부를 실시간 판정합니다.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#166534', fontWeight: '500', textAlign: 'center' }}>
+                        💡 <b>취업일</b>과 <b>외국인 등록번호</b>를 입력하면<br/>
+                        청년 감면 대상 여부가 실시간 계산됩니다.
+                      </div>
+                    )}
+                  </div>
+
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn-cancel" style={{ padding: '6px 14px', fontSize: '13px', backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={handleResetAll}>전체 초기화</button>
                     <button className="btn-submit" style={{ padding: '6px 16px', fontSize: '13px', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }} onClick={handleSaveRegistration}>신규저장</button>
@@ -2255,39 +2803,63 @@ function App() {
                             </label>
                           </div>
                         </td>
-                        {targetYears.map(yr => (
-                          <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '4px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
-                              {regForm.years[yr]?.isFileUploaded ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownloadPdf(yr)}
-                                  style={{
-                                    backgroundColor: '#15803d',
-                                    color: '#ffffff',
-                                    fontWeight: 'bold',
-                                    fontSize: '11px',
-                                    padding: '4px 14px',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                  }}
-                                >
-                                  다운로드
-                                </button>
-                              ) : (
-                                <input 
-                                  type="file" 
-                                  accept=".pdf" 
-                                  multiple
-                                  style={{ fontSize: '12px', width: '150px' }} 
-                                  onChange={(e) => handleSingleYearPdfUpload(e, yr)} 
-                                />
-                              )}
-                            </div>
-                          </td>
-                        ))}
+                        {targetYears.map(yr => {
+                          const yrData = regForm.years[yr];
+                          const hasPdf = yrData?.isFileUploaded || Boolean(yrData?.fileURL) || Boolean(yrData?.pdfUrl) || Boolean(yrData?.pdfFile);
+                          return (
+                            <td key={yr} style={{ border: '1px solid #cbd5e1', padding: '4px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                {hasPdf ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadPdf(yr)}
+                                      style={{
+                                        backgroundColor: '#15803d',
+                                        color: '#ffffff',
+                                        fontWeight: 'bold',
+                                        fontSize: '11px',
+                                        padding: '4px 10px',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                      }}
+                                    >
+                                      다운로드
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReanalyzeYearPdf(yr)}
+                                      style={{
+                                        backgroundColor: '#0284c7',
+                                        color: '#ffffff',
+                                        fontWeight: 'bold',
+                                        fontSize: '11px',
+                                        padding: '4px 8px',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                      }}
+                                      title="PDF 원본을 다시 분석하여 최신 로직으로 세액 및 환급금을 자동 교정합니다."
+                                    >
+                                      🔄 PDF 재분석
+                                    </button>
+                                  </>
+                                ) : (
+                                  <input 
+                                    type="file" 
+                                    accept=".pdf" 
+                                    multiple
+                                    style={{ fontSize: '12px', width: '150px' }} 
+                                    onChange={(e) => handleSingleYearPdfUpload(e, yr)} 
+                                  />
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
                         <td style={{ border: '1px solid #cbd5e1', backgroundColor: '#e2e8f0' }}></td>
                       </tr>
 
@@ -2566,7 +3138,12 @@ function App() {
                           const yearData = regForm.years[yr];
                           const isFileUploaded = Boolean(yearData?.isFileUploaded);
                           const applyVal = yearData?.childReductionApply;
-                          const isApplied = Boolean(
+
+                          // Check eligibility
+                          const eligibility = checkYouthEligibility(regForm.foreignerNumber, regForm.residentAddress);
+                          const isEligible = eligibility.isEligible;
+
+                          const isApplied = isEligible && Boolean(
                             applyVal !== 'N' && 
                             applyVal !== '0' && 
                             (applyVal === 'Y' || applyVal === '90%' || Number(yearData?.childReductionApplyAmt) > 0)
@@ -2575,9 +3152,16 @@ function App() {
                           return (
                             <td 
                               key={yr} 
-                              style={{ border: '1px solid #cbd5e1', padding: isFileUploaded ? '6px' : '2px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                              style={{ 
+                                border: '1px solid #cbd5e1', 
+                                padding: isFileUploaded ? '6px' : '2px', 
+                                textAlign: 'center', 
+                                cursor: isEligible && isFileUploaded ? 'pointer' : 'default', 
+                                userSelect: 'none',
+                                backgroundColor: !isEligible ? '#fef2f2' : ''
+                              }}
                               onClick={() => {
-                                if (isFileUploaded) {
+                                if (isEligible && isFileUploaded) {
                                   setRegForm(prev => ({
                                     ...prev,
                                     years: {
@@ -2591,7 +3175,11 @@ function App() {
                                 }
                               }}
                             >
-                              {!isFileUploaded ? (
+                              {!isEligible ? (
+                                <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 'bold', display: 'inline-block', padding: '2px 4px', borderRadius: '4px', backgroundColor: '#fee2e2' }}>
+                                  ❌ 대상 아님 (만 {eligibility.age}세)
+                                </span>
+                              ) : !isFileUploaded ? (
                                 <input
                                   type="text"
                                   className="form-control"
